@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 
 export default function DashboardLayout({ children }: any) {
   return (
-    <div className="flex h-screen">
+    <div className="flex">
 
       {/* Sidebar */}
-      <div className="w-64 bg-gray-900 text-white p-6">
+      <div className="w-64 h-screen bg-gray-900 text-white p-6 fixed left-0 top-0">
 
         <h2 className="text-2xl font-bold mb-8">
           MPMA ERP
@@ -46,7 +46,7 @@ export default function DashboardLayout({ children }: any) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-10 bg-gray-100">
+      <div className="ml-64 flex-1 p-10 bg-gray-100 min-h-screen overflow-y-auto">
         {children}
       </div>
 

@@ -6,6 +6,7 @@ import AuditoriumBooking from "./modules/booking/pages/AuditoriumBooking";
 import ClassroomBooking from "./modules/booking/pages/ClassroomBooking";
 import TransportBooking from "./modules/booking/pages/TransportBooking";
 import NewBooking from "./modules/booking/pages/NewBooking";
+import EditBooking from "./modules/booking/pages/EditBooking";
 
 
 
@@ -18,6 +19,7 @@ function App() {
       <Route path="/new-booking" element={<NewBooking />} />
       <Route path="/classroom-booking" element={<ClassroomBooking />} />
       <Route path="/transport-booking" element={<TransportBooking />} />
+      <Route path="/edit-booking/:id" element={<EditBooking />} />
     </Routes>
   );
 }

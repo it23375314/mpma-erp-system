@@ -2,28 +2,54 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../../layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import BookingCalendar from "../components/BookingCalendar";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function AuditoriumBooking() {
 
   const navigate = useNavigate();
-
-  const [bookings, setBookings] = useState<any[]>([])
+  const [bookings, setBookings] = useState<any[]>([]);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("bookings") || "[]")
-    setBookings(saved)
-  }, [])
+    const saved = JSON.parse(localStorage.getItem("bookings") || "[]");
+    setBookings(saved);
+  }, []);
 
   const updateStatus = (index: number, status: string) => {
 
-    const updated = [...bookings]
+  const updated = [...bookings];
+  updated[index].status = status;
 
-    updated[index].status = status
+  setBookings(updated);
+  localStorage.setItem("bookings", JSON.stringify(updated));
 
-    setBookings(updated)
-
-    localStorage.setItem("bookings", JSON.stringify(updated))
+  if (status === "Approved") {
+    toast.success("Reservation approved!");
   }
+
+  if (status === "Rejected") {
+    toast.error("Reservation rejected!");
+  }
+};
+
+  const deleteBooking = (index: number) => {
+
+  const confirmDelete = window.confirm(
+    "Are you sure you want to delete this booking?"
+  );
+
+  if (!confirmDelete) return;
+
+  const updated = [...bookings];
+
+  updated.splice(index, 1);
+
+  setBookings(updated);
+
+  localStorage.setItem("bookings", JSON.stringify(updated));
+  
+  toast.success("Booking deleted successfully!");
+};
 
   return (
     <DashboardLayout>
@@ -40,7 +66,7 @@ export default function AuditoriumBooking() {
         + New Reservation
       </button>
 
-      {/* Calendar */}
+
       <div className="bg-white p-6 rounded-lg shadow mt-4">
         <h2 className="text-xl font-semibold mb-4">
           Booking Calendar
@@ -49,7 +75,8 @@ export default function AuditoriumBooking() {
         <BookingCalendar bookings={bookings} />
       </div>
 
-      {/* Booking Table */}
+
+
       <div className="bg-white p-6 rounded-lg shadow mt-6">
 
         <h2 className="text-xl font-semibold mb-4">
@@ -88,31 +115,46 @@ export default function AuditoriumBooking() {
                   <td className="p-3 border">{b.start} - {b.end}</td>
                   <td className="p-3 border">{b.participants}</td>
 
-                  <td className="p-3 border">
-                    {b.status}
-                  </td>
+                  <td className="p-3 border">{b.status}</td>
 
-                  <td className="p-3 border">
+                  <td className="p-3 border space-x-2">
 
-                    {b.status === "Pending" && (
-                      <>
-                        <button
-                          onClick={() => updateStatus(index, "Approved")}
-                          className="bg-green-600 text-white px-3 py-1 rounded mr-2"
-                        >
-                          Approve
-                        </button>
+  {/* Approve / Reject only if Pending */}
+  {b.status === "Pending" && (
+    <>
+      <button
+        onClick={() => updateStatus(index, "Approved")}
+        className="bg-green-600 text-white px-3 py-1 rounded"
+      >
+        Approve
+      </button>
 
-                        <button
-                          onClick={() => updateStatus(index, "Rejected")}
-                          className="bg-red-600 text-white px-3 py-1 rounded"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
+      <button
+        onClick={() => updateStatus(index, "Rejected")}
+        className="bg-red-600 text-white px-3 py-1 rounded"
+      >
+        Reject
+      </button>
+    </>
+  )}
 
-                  </td>
+  {/* Edit Button */}
+  <button
+  onClick={() => navigate(`/edit-booking/${index}`)}
+  className="bg-blue-600 text-white px-3 py-1 rounded"
+>
+  Edit
+</button>
+
+  {/* Delete Button */}
+  <button
+    onClick={() => deleteBooking(index)}
+    className="bg-gray-700 text-white px-3 py-1 rounded"
+  >
+    Delete
+  </button>
+
+</td>
 
                 </tr>
 
@@ -127,5 +169,5 @@ export default function AuditoriumBooking() {
       </div>
 
     </DashboardLayout>
-  )
+  );
 }
