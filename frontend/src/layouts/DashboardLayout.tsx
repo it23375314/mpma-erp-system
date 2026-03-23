@@ -1,0 +1,139 @@
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { 
+  LogOut, 
+  LayoutDashboard, 
+  MonitorPlay, 
+  BookOpen, 
+  Bus,
+  Ship,
+  Bell,
+  Search,
+  UserCircle
+} from "lucide-react";
+
+export default function DashboardLayout({ children }: any) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const userRole = localStorage.getItem("userRole") || "user";
+
+  const handleLogout = () => {
+    localStorage.removeItem("userRole");
+    navigate("/");
+  };
+
+  const navItems = [
+    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/auditorium-booking", label: "Auditorium Booking", icon: MonitorPlay },
+    { path: "/classroom-booking", label: "Classroom Booking", icon: BookOpen },
+    { path: "/transport-booking", label: "Transport Booking", icon: Bus },
+  ];
+
+  return (
+    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+
+      {/* Sidebar */}
+      <aside className="w-72 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 relative z-20 shadow-2xl">
+        
+        {/* Logo/Brand Area */}
+        <div className="h-20 flex items-center px-6 border-b border-slate-800 bg-slate-950/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-brand-600 rounded-lg text-white">
+              <Ship className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white leading-tight">MPMA</h2>
+              <p className="text-xs text-slate-400 font-medium tracking-wide border-t border-slate-800 pt-0.5 mt-0.5">ERP SYSTEM</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+          <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+            Main Menu
+          </p>
+          
+          {navItems.map((item) => {
+            const isActive = location.pathname.startsWith(item.path);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  isActive 
+                    ? "bg-brand-600 text-white shadow-md shadow-brand-500/20" 
+                    : "hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <Icon className={`w-5 h-5 transition-colors ${isActive ? "text-white" : "text-slate-400 group-hover:text-brand-400"}`} />
+                <span className="font-medium text-sm">{item.label}</span>
+              </Link>
+            )
+          })}
+        </nav>
+
+        {/* User Card & Logout */}
+        <div className="p-4 border-t border-slate-800 bg-slate-950/30">
+          <div className="flex items-center gap-3 mb-4 px-2">
+            <UserCircle className="w-10 h-10 text-slate-400" />
+            <div>
+              <p className="text-sm font-semibold text-white capitalize">{userRole} User</p>
+              <p className="text-xs text-slate-500">Logged in via Email</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-500/10 hover:text-red-400 text-slate-300 py-2.5 px-4 rounded-xl transition-all duration-200 border border-transparent hover:border-red-500/20 text-sm font-medium"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        {/* Top Header */}
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10 sticky top-0">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="relative w-full max-w-md hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Search across the ERP..." 
+                className="w-full pl-10 pr-4 py-2 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-5">
+            <button className="relative p-2 text-slate-400 hover:text-brand-600 transition-colors rounded-full hover:bg-slate-100">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+            </button>
+            <div className="h-8 w-px bg-slate-200"></div>
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-slate-700 leading-tight capitalize">{userRole}</p>
+                <p className="text-xs text-slate-500">Active status</p>
+              </div>
+              <div className="w-9 h-9 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">
+                {userRole.charAt(0).toUpperCase()}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Page Content */}
+        <main className="flex-1 overflow-y-auto p-8 relative">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
+
+    </div>
+  );
+}
