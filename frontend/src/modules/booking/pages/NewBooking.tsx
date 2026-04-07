@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DashboardLayout from "../../../layouts/DashboardLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { 
+import {
   Save,
   ArrowLeft,
   User,
@@ -13,12 +13,13 @@ import {
   FileText
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
+import { fetchApi } from "../../../utils/api";
+import MaintenanceWarningModal from "../components/MaintenanceWarningModal";
 
 export default function NewBooking() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const typeStr = searchParams.get("type");
-  const storageKey = typeStr ? `${typeStr}-bookings` : "bookings";
   
   const titleMap: any = {
     classroom: "New Classroom Booking",
@@ -36,25 +37,45 @@ export default function NewBooking() {
     participants: "",
     description: ""
   });
+  const [maintenanceWarnings, setMaintenanceWarnings] = useState<any[]>([]);
 
-  const handleChange = (e: any) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    });
+  const checkMaintenanceForDate = async (date: string, start: string, end: string) => {
+    if (!date) { setMaintenanceWarnings([]); return; }
+    try {
+      const result = await fetchApi('/maintenances/check-conflict', {
+        method: 'POST',
+        body: JSON.stringify({
+          facilityType: 'Auditorium',
+          dateFrom: date,
+          dateTo: date,
+          timeFrom: start || '00:00',
+          timeTo: end || '23:59'
+        })
+      });
+      setMaintenanceWarnings(result.hasConflict ? result.conflicts.map((m: any) => ({
+        ...m,
+        facilityName: m.classroom?.name || m.vehicle?.name || m.facilityType
+      })) : []);
+    } catch (_) { setMaintenanceWarnings([]); }
   };
 
-  const handleSubmit = (e: any) => {
+  const handleChange = (e: any) => {
+    const updated = { ...form, [e.target.name]: e.target.value };
+    setForm(updated);
+    if (e.target.name === 'date' || e.target.name === 'start' || e.target.name === 'end') {
+      checkMaintenanceForDate(
+        e.target.name === 'date' ? e.target.value : form.date,
+        e.target.name === 'start' ? e.target.value : form.start,
+        e.target.name === 'end' ? e.target.value : form.end
+      );
+    }
+  };
+
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     if (!form.name || !form.contact || !form.date || !form.start || !form.end) {
       toast.error("Please fill all required fields");
-      return;
-    }
-
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(form.contact)) {
-      toast.error("Contact number must contain exactly 10 digits");
       return;
     }
 
@@ -74,39 +95,64 @@ export default function NewBooking() {
       return;
     }
 
-    const existingBookings = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    try {
+      const existingBookings = await fetchApi('/auditorium-bookings');
 
-    const conflict = existingBookings.find((b: any) =>
-      b.date === form.date &&
-      (
-        (form.start >= b.start && form.start < b.end) ||
-        (form.end > b.start && form.end <= b.end) ||
-        (form.start <= b.start && form.end >= b.end)
-      )
-    );
+      const conflict = existingBookings.find((b: any) =>
+        b.date === form.date &&
+        (
+          (form.start >= b.start && form.start < b.end) ||
+          (form.end > b.start && form.end <= b.end) ||
+          (form.start <= b.start && form.end >= b.end)
+        )
+      );
 
-    if (conflict) {
-      toast.error("This time slot is already booked!");
-      return;
+      if (conflict) {
+        toast.error("This time slot is already booked!");
+        return;
+      }
+
+      const maintenanceCheck = await fetchApi('/maintenances/check-conflict', {
+        method: 'POST',
+        body: JSON.stringify({
+          facilityType: 'Auditorium',
+          dateFrom: form.date,
+          dateTo: form.date,
+          timeFrom: form.start,
+          timeTo: form.end
+        })
+      });
+
+      if (maintenanceCheck.hasConflict) {
+        // Since there's only one auditorium, any 'Auditorium' maintenance blocks it
+        toast.error(`Auditorium is under maintenance: ${maintenanceCheck.conflicts[0].title}`);
+        return;
+      }
+
+      const payload = {
+        ...form,
+        participants: Number(form.participants),
+        status: "Pending"
+      };
+
+      await fetchApi('/auditorium-bookings', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      
+      toast.success("Reservation created successfully!");
+      navigate("/auditorium-booking");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create booking");
     }
-
-    const newBooking = {
-      ...form,
-      status: "Pending"
-    };
-
-    existingBookings.push(newBooking);
-    localStorage.setItem(storageKey, JSON.stringify(existingBookings));
-    toast.success("Reservation created successfully!");
-    
-    // Redirect back to the correct list
-    if (typeStr === "classroom") navigate("/classroom-booking");
-    else if (typeStr === "transport") navigate("/transport-booking");
-    else navigate("/auditorium-booking");
   };
 
   return (
     <DashboardLayout>
+      <MaintenanceWarningModal
+        warnings={maintenanceWarnings}
+        onClose={() => setMaintenanceWarnings([])}
+      />
       
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
@@ -188,6 +234,7 @@ export default function NewBooking() {
                 </div>
                 <input
                   type="date"
+                  min={new Date().toISOString().split("T")[0]}
                   name="date"
                   value={form.date}
                   onChange={handleChange}

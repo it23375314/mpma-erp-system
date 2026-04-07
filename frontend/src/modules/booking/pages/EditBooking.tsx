@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../../layouts/DashboardLayout";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { 
   Save,
@@ -12,13 +12,11 @@ import {
   Users,
   FileText
 } from "lucide-react";
+import { fetchApi } from "../../../utils/api";
 
 export default function EditBooking() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const typeStr = searchParams.get("type");
-  const storageKey = typeStr ? `${typeStr}-bookings` : "bookings";
 
   const [form, setForm] = useState({
     name: "",
@@ -28,25 +26,47 @@ export default function EditBooking() {
     end: "",
     participants: "",
     description: "",
-    status: "Pending" // Used internally to keep status
+    status: "Pending"
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const bookings = JSON.parse(localStorage.getItem(storageKey) || "[]");
-    const booking = bookings[id as any];
-    if (booking) {
-      setForm(booking);
-    }
-  }, [id, storageKey]);
+    const fetchBooking = async () => {
+      try {
+        // Fetch all auditorium bookings and find by id (UUID)
+        const data = await fetchApi("/auditorium-bookings");
+        const booking = data.find((b: any) => b.id === id);
+        if (booking) {
+          setForm({
+            name: booking.name || "",
+            contact: booking.contact || "",
+            date: booking.date || "",
+            start: booking.start || "",
+            end: booking.end || "",
+            participants: booking.participants?.toString() || "",
+            description: booking.description || "",
+            status: booking.status || "Pending"
+          });
+        } else {
+          toast.error("Booking not found");
+          navigate("/auditorium-booking");
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load booking");
+        navigate("/auditorium-booking");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleChange = (e:any) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    });
+    if (id) fetchBooking();
+  }, [id]);
+
+  const handleChange = (e: any) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e:any) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     if (!form.name || !form.contact || !form.date || !form.start || !form.end) {
@@ -54,36 +74,36 @@ export default function EditBooking() {
       return;
     }
 
-    const bookings = JSON.parse(localStorage.getItem(storageKey) || "[]");
-    
-    // Check conflicts excluding current booking
-    const conflict = bookings.find((b: any, index: number) =>
-      index !== Number(id) &&
-      b.date === form.date &&
-      (
-        (form.start >= b.start && form.start < b.end) ||
-        (form.end > b.start && form.end <= b.end) ||
-        (form.start <= b.start && form.end >= b.end)
-      )
-    );
+    try {
+      await fetchApi(`/auditorium-bookings/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: form.name,
+          contact: form.contact,
+          date: form.date,
+          start: form.start,
+          end: form.end,
+          participants: Number(form.participants),
+          description: form.description
+        })
+      });
 
-    if (conflict) {
-      toast.error("This time slot is already booked!");
-      return;
+      toast.success("Reservation updated successfully!");
+      navigate("/auditorium-booking");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update booking");
     }
-
-    bookings[id as any] = {
-      ...form,
-      status: bookings[id as any].status
-    };
-
-    localStorage.setItem(storageKey, JSON.stringify(bookings));
-    toast.success("Reservation updated successfully!");
-
-    if (typeStr === "classroom") navigate("/classroom-booking");
-    else if (typeStr === "transport") navigate("/transport-booking");
-    else navigate("/auditorium-booking");
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -101,7 +121,7 @@ export default function EditBooking() {
             Edit Reservation
           </h1>
           <p className="text-slate-500 font-medium mt-1">
-            Update the details for booking Request ID #{1000 + Number(id)}.
+            Update the details for booking ID: {id?.slice(0, 8)}...
           </p>
         </div>
       </div>
@@ -139,6 +159,7 @@ export default function EditBooking() {
                   name="name"
                   value={form.name}
                   onChange={handleChange}
+                  placeholder="Requester name"
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none"
                   required
                 />
@@ -158,6 +179,7 @@ export default function EditBooking() {
                   name="contact"
                   value={form.contact}
                   onChange={handleChange}
+                  placeholder="Contact number"
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none"
                   required
                 />
@@ -259,6 +281,7 @@ export default function EditBooking() {
                 value={form.description}
                 onChange={handleChange}
                 rows={4}
+                placeholder="Describe the event..."
                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none resize-none"
               />
             </div>

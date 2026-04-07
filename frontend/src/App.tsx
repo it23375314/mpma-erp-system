@@ -7,7 +7,13 @@ import ClassroomBooking from "./modules/booking/pages/ClassroomBooking";
 import TransportBooking from "./modules/booking/pages/TransportBooking";
 import NewBooking from "./modules/booking/pages/NewBooking";
 import EditBooking from "./modules/booking/pages/EditBooking";
-
+import ManageVehicles from "./modules/booking/pages/ManageVehicles";
+import NewTransportBooking from "./modules/booking/pages/NewTransportBooking";
+import EditTransportBooking from "./modules/booking/pages/EditTransportBooking";
+import ManageClassrooms from "./modules/booking/pages/ManageClassrooms";
+import NewClassroomBooking from "./modules/booking/pages/NewClassroomBooking";
+import EditClassroomBooking from "./modules/booking/pages/EditClassroomBooking";
+import ManageMaintenance from "./modules/booking/pages/ManageMaintenance";
 
 
 function App() {
@@ -20,6 +26,13 @@ function App() {
       <Route path="/classroom-booking" element={<ClassroomBooking />} />
       <Route path="/transport-booking" element={<TransportBooking />} />
       <Route path="/edit-booking/:id" element={<EditBooking />} />
+      <Route path="/manage-vehicles" element={<ManageVehicles />} />
+      <Route path="/manage-classrooms" element={<ManageClassrooms />} />
+      <Route path="/new-transport-booking" element={<NewTransportBooking />} />
+      <Route path="/edit-transport-booking/:id" element={<EditTransportBooking />} />
+      <Route path="/new-classroom-booking" element={<NewClassroomBooking />} />
+      <Route path="/edit-classroom-booking/:id" element={<EditClassroomBooking />} />
+      <Route path="/manage-maintenance" element={<ManageMaintenance />} />
     </Routes>
   );
 }

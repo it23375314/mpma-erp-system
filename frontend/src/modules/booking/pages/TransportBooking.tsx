@@ -12,48 +12,129 @@ import {
   Bus,
   Calendar,
   Clock,
-  Users
+  Users,
+  Filter
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
+import { fetchApi, formatDate } from "../../../utils/api";
+import CustomModal from "../components/CustomModal";
 
 export default function TransportBooking() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
+  const [maintenances, setMaintenances] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
+  const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("transport-bookings") || "[]");
-    setBookings(saved);
+    loadBookings();
+    loadMaintenances();
+    loadVehicles();
   }, []);
 
-  const updateStatus = (index: number, status: string) => {
-    const updated = [...bookings];
-    updated[index].status = status;
-    setBookings(updated);
-    localStorage.setItem("transport-bookings", JSON.stringify(updated));
-    if (status === "Approved") toast.success("Reservation approved!");
-    if (status === "Rejected") toast.error("Reservation rejected!");
+  const loadBookings = async () => {
+    try {
+      const data = await fetchApi('/transport-bookings');
+      setBookings(data);
+    } catch (error) {
+      toast.error("Failed to load transport bookings");
+    }
   };
 
-  const deleteBooking = (index: number) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this booking?");
-    if (!confirmDelete) return;
-    const updated = [...bookings];
-    updated.splice(index, 1);
-    setBookings(updated);
-    localStorage.setItem("transport-bookings", JSON.stringify(updated));
-    toast.success("Booking deleted successfully!");
+  const loadMaintenances = async () => {
+    try {
+      const data = await fetchApi('/maintenances');
+      setMaintenances(data.filter((m: any) => m.facilityType === 'General' || m.facilityType === 'Transport'));
+    } catch (error) {
+      console.error("Failed to load maintenances", error);
+    }
+  };
+
+  const loadVehicles = async () => {
+    try {
+      const data = await fetchApi('/vehicles');
+      setVehicles(data);
+    } catch (error) {
+      console.error("Failed to load vehicles", error);
+    }
+  };
+
+  const filteredBookings = selectedVehicle === "all" 
+    ? bookings 
+    : bookings.filter(b => (b.vehicle?.id || b.vehicleId || b.vehicle) === selectedVehicle);
+
+  const filteredMaintenances = selectedVehicle === "all"
+    ? maintenances
+    : maintenances.filter(m => m.facilityType === 'General' || m.facilityId === selectedVehicle);
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      const updated = await fetchApi(`/transport-bookings/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+      setBookings(bookings.map(b => b.id === id ? updated : b));
+      if (status === "Approved") toast.success("Reservation approved!");
+      if (status === "Rejected") toast.error("Reservation rejected!");
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const deleteBooking = async (id: string, name: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Delete Transport Reservation",
+      message: `Are you sure you want to delete the reservation for "${name}"? This will free up the vehicle for other bookings.`,
+      type: "danger",
+      confirmText: "Delete Now",
+      onConfirm: async () => {
+        try {
+          await fetchApi(`/transport-bookings/${id}`, { method: 'DELETE' });
+          setBookings(bookings.filter(b => b.id !== id));
+          toast.success("Booking deleted successfully!");
+        } catch (error) {
+          toast.error("Failed to delete booking");
+        }
+      }
+    });
   };
 
   const StatusBadge = ({ status }: { status: string }) => {
     switch (status) {
       case "Approved":
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>Approved</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">Approved</span>;
       case "Rejected":
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200"><div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>Rejected</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider">Rejected</span>;
+      case "Denied":
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider">Denied</span>;
       default:
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>Pending</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wider">Pending</span>;
     }
+  };
+
+  const denyBooking = async (id: string, name: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Deny Transport Request",
+      message: `Are you sure you want to deny (cancel) the transport request for "${name}"? This record will remain visible to administrators as "Denied".`,
+      type: "warning",
+      confirmText: "Yes, Deny",
+      onConfirm: async () => {
+        try {
+          await fetchApi(`/transport-bookings/${id}/status`, { 
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'Denied' })
+          });
+          loadBookings();
+          toast.success("Request denied successfully!");
+        } catch (error) {
+          toast.error("Failed to deny request");
+        }
+      }
+    });
   };
 
   return (
@@ -75,7 +156,7 @@ export default function TransportBooking() {
           </p>
         </div>
         <button
-          onClick={() => navigate("/new-booking?type=transport")}
+          onClick={() => navigate("/new-transport-booking")}
           className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-brand-500/20 transition-all font-semibold"
         >
           <Plus className="w-5 h-5" />
@@ -83,14 +164,75 @@ export default function TransportBooking() {
         </button>
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-3 rounded-xl bg-amber-100 text-amber-600">
+            <Bus className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</p>
+            <p className="text-3xl font-extrabold text-slate-800 leading-tight mt-0.5">{bookings.length}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-3 rounded-xl bg-amber-100 text-amber-600">
+            <Clock className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending</p>
+            <p className="text-3xl font-extrabold text-amber-600 leading-tight mt-0.5">{bookings.filter(b => b.status === 'Pending').length}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
+            <CheckCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Approved</p>
+            <p className="text-3xl font-extrabold text-emerald-600 leading-tight mt-0.5">{bookings.filter(b => b.status === 'Approved').length}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-3 rounded-xl bg-red-100 text-red-600">
+            <XOctagon className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rejected</p>
+            <p className="text-3xl font-extrabold text-red-600 leading-tight mt-0.5">{bookings.filter(b => b.status === 'Rejected').length}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Calendar Card */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
-        <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-brand-500" />
-          Availability Schedule
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-brand-500" />
+            Availability Schedule
+          </h2>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="w-4 h-4 text-slate-400" />
+              </div>
+              <select 
+                value={selectedVehicle}
+                onChange={(e) => setSelectedVehicle(e.target.value)}
+                className="pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none appearance-none cursor-pointer hover:bg-white transition-all shadow-sm"
+              >
+                <option value="all">All Vehicles</option>
+                {vehicles.map(v => (
+                  <option key={v.id} value={v.id}>{v.name} ({v.number})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-xl overflow-hidden border border-slate-200/60 bg-slate-50/50 p-2">
-          <BookingCalendar bookings={bookings} />
+          <BookingCalendar bookings={filteredBookings} maintenances={filteredMaintenances} />
         </div>
       </div>
 
@@ -107,9 +249,9 @@ export default function TransportBooking() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                <th className="p-4 pl-6 whitespace-nowrap">Requester</th>
+                <th className="p-4 pl-6 whitespace-nowrap">Requester & Trip</th>
+                <th className="p-4 whitespace-nowrap">Vehicle Details</th>
                 <th className="p-4 whitespace-nowrap">Schedule</th>
-                <th className="p-4 whitespace-nowrap">Passengers</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
                 <th className="p-4 pr-6 whitespace-nowrap text-right">Actions</th>
               </tr>
@@ -123,7 +265,7 @@ export default function TransportBooking() {
                       <p className="font-medium text-slate-600">No bookings found</p>
                       <p className="text-sm mt-1">There are currently no transport requests.</p>
                       <button 
-                        onClick={() => navigate("/new-booking?type=transport")}
+                        onClick={() => navigate("/new-transport-booking")}
                         className="mt-4 px-4 py-2 bg-amber-50 text-amber-600 font-semibold rounded-lg hover:bg-amber-100"
                       >
                         Create the first one
@@ -138,23 +280,28 @@ export default function TransportBooking() {
                     <td className="p-4 pl-6 align-middle">
                       <div className="font-semibold text-slate-800">{b.name}</div>
                       <div className="text-xs text-slate-500 mt-0.5">ID: #TRN-{1000 + index}</div>
+                      <div className="text-xs text-slate-500 mt-1">{b.pickup} &rarr; {b.destination}</div>
                     </td>
                     
                     <td className="p-4 align-middle">
                       <div className="flex items-center gap-2 text-sm text-slate-700 font-medium whitespace-nowrap">
-                        <Calendar className="w-4 h-4 text-slate-400" />
-                        {b.date}
+                        <Bus className="w-4 h-4 text-slate-400" />
+                        {b.vehicle ? b.vehicle.name : (b.vehicleName || 'Unassigned')}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 whitespace-nowrap">
-                        <Clock className="w-4 h-4 text-slate-400" />
-                        {b.start} - {b.end}
+                        <Users className="w-4 h-4 text-slate-400" />
+                        {b.passengers || b.participants} pax
                       </div>
                     </td>
 
                     <td className="p-4 align-middle">
                       <div className="flex items-center gap-2 text-sm text-slate-700 font-medium">
-                        <Users className="w-4 h-4 text-slate-400" />
-                        {b.participants} pax
+                        <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        {formatDate(b.departureDate)} <span className="text-slate-400 mx-1">to</span> {formatDate(b.returnDate)}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 whitespace-nowrap">
+                        <Clock className="w-4 h-4 text-slate-400" />
+                        Departs at {b.departureTime}
                       </div>
                     </td>
 
@@ -167,14 +314,33 @@ export default function TransportBooking() {
                         
                         {userRole === "admin" && b.status === "Pending" && (
                           <div className="flex bg-slate-100 rounded-lg p-1 mr-2 border border-slate-200">
-                            <button title="Approve" onClick={() => updateStatus(index, "Approved")} className="p-1.5 text-emerald-600 hover:bg-white rounded-md transition-colors"><CheckCircle className="w-4 h-4" /></button>
+                            <button title="Approve" onClick={() => updateStatus(b.id, "Approved")} className="p-1.5 text-emerald-600 hover:bg-white rounded-md transition-colors"><CheckCircle className="w-4 h-4" /></button>
                             <div className="w-px bg-slate-200 mx-0.5"></div>
-                            <button title="Reject" onClick={() => updateStatus(index, "Rejected")} className="p-1.5 text-red-600 hover:bg-white rounded-md transition-colors"><XOctagon className="w-4 h-4" /></button>
+                            <button title="Reject" onClick={() => updateStatus(b.id, "Rejected")} className="p-1.5 text-red-600 hover:bg-white rounded-md transition-colors"><XOctagon className="w-4 h-4" /></button>
                           </div>
                         )}
 
-                        <button title="Edit" onClick={() => navigate(`/edit-booking/${index}?type=transport`)} className="p-2 text-brand-600 bg-brand-50 hover:bg-brand-100 hover:text-brand-700 rounded-lg transition-colors border border-brand-100"><Edit3 className="w-4 h-4" /></button>
-                        <button title="Delete" onClick={() => deleteBooking(index)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg transition-colors border border-red-100"><Trash2 className="w-4 h-4" /></button>
+                        <button title="Edit" onClick={() => navigate(`/edit-transport-booking/${b.id}`)} className="p-2 text-brand-600 bg-brand-50 hover:bg-brand-100 hover:text-brand-700 rounded-lg transition-colors border border-brand-100"><Edit3 className="w-4 h-4" /></button>
+                        
+                        {userRole === "admin" ? (
+                          <button 
+                            title="Hard Delete" 
+                            onClick={() => deleteBooking(b.id, b.name)} 
+                            className="p-2 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg transition-colors border border-red-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          b.status !== "Denied" && (
+                            <button 
+                              title="Deny Request" 
+                              onClick={() => denyBooking(b.id, b.name)} 
+                              className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-700 rounded-lg transition-colors border border-slate-200"
+                            >
+                              <XOctagon className="w-4 h-4" />
+                            </button>
+                          )
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -184,6 +350,11 @@ export default function TransportBooking() {
           </table>
         </div>
       </div>
+
+      <CustomModal 
+        {...modalConfig} 
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })} 
+      />
     </DashboardLayout>
   );
 }

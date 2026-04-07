@@ -7,54 +7,113 @@ import {
   Plus, 
   CheckCircle, 
   XOctagon, 
-  Trash2, 
-  Edit3, 
+  Trash2,
+  Edit3,
   MonitorPlay,
   Calendar,
   Clock,
   Users
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
+import { fetchApi, formatDate } from "../../../utils/api";
+import CustomModal from "../components/CustomModal";
 
 export default function AuditoriumBooking() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
+  const [maintenances, setMaintenances] = useState<any[]>([]);
+  const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("bookings") || "[]");
-    setBookings(saved);
+    loadBookings();
+    loadMaintenances();
   }, []);
 
-  const updateStatus = (index: number, status: string) => {
-    const updated = [...bookings];
-    updated[index].status = status;
-    setBookings(updated);
-    localStorage.setItem("bookings", JSON.stringify(updated));
-
-    if (status === "Approved") toast.success("Reservation approved!");
-    if (status === "Rejected") toast.error("Reservation rejected!");
+  const loadBookings = async () => {
+    try {
+      const data = await fetchApi('/auditorium-bookings');
+      setBookings(data);
+    } catch (error) {
+      toast.error("Failed to load auditorium bookings");
+    }
   };
 
-  const deleteBooking = (index: number) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this booking?");
-    if (!confirmDelete) return;
-    const updated = [...bookings];
-    updated.splice(index, 1);
-    setBookings(updated);
-    localStorage.setItem("bookings", JSON.stringify(updated));
-    toast.success("Booking deleted successfully!");
+  const loadMaintenances = async () => {
+    try {
+      const data = await fetchApi('/maintenances');
+      setMaintenances(data.filter((m: any) => m.facilityType === 'General' || m.facilityType === 'Auditorium'));
+    } catch (error) {
+      console.error("Failed to load maintenances", error);
+    }
+  };
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      const updated = await fetchApi(`/auditorium-bookings/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+      setBookings(bookings.map(b => b.id === id ? updated : b));
+      if (status === "Approved") toast.success("Reservation approved!");
+      if (status === "Rejected") toast.error("Reservation rejected!");
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const deleteBooking = async (id: string, name: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm Deletion",
+      message: `Are you sure you want to delete the auditorium reservation for "${name}"? This will permanently remove the record.`,
+      type: "danger",
+      confirmText: "Yes, Delete",
+      onConfirm: async () => {
+        try {
+          await fetchApi(`/auditorium-bookings/${id}`, { method: 'DELETE' });
+          setBookings(bookings.filter(b => b.id !== id));
+          toast.success("Booking deleted successfully!");
+        } catch (error) {
+          toast.error("Failed to delete booking");
+        }
+      }
+    });
   };
 
   const StatusBadge = ({ status }: { status: string }) => {
     switch (status) {
       case "Approved":
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>Approved</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">Approved</span>;
       case "Rejected":
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200"><div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>Rejected</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider">Rejected</span>;
+      case "Denied":
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider">Denied</span>;
       default:
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>Pending</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wider">Pending</span>;
     }
+  };
+
+  const denyBooking = async (id: string, name: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Deny Auditorium Booking",
+      message: `Are you sure you want to deny (cancel) the reservation for "${name}"? This record will remain in the system as "Denied".`,
+      type: "warning",
+      confirmText: "Yes, Deny",
+      onConfirm: async () => {
+        try {
+          await fetchApi(`/auditorium-bookings/${id}/status`, { 
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'Denied' })
+          });
+          loadBookings();
+          toast.success("Booking denied successfully!");
+        } catch (error) {
+          toast.error("Failed to deny booking");
+        }
+      }
+    });
   };
 
   return (
@@ -84,6 +143,46 @@ export default function AuditoriumBooking() {
         </button>
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-3 rounded-xl bg-blue-100 text-blue-600">
+            <MonitorPlay className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</p>
+            <p className="text-3xl font-extrabold text-slate-800 leading-tight mt-0.5">{bookings.length}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-3 rounded-xl bg-amber-100 text-amber-600">
+            <Clock className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending</p>
+            <p className="text-3xl font-extrabold text-amber-600 leading-tight mt-0.5">{bookings.filter(b => b.status === 'Pending').length}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
+            <CheckCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Approved</p>
+            <p className="text-3xl font-extrabold text-emerald-600 leading-tight mt-0.5">{bookings.filter(b => b.status === 'Approved').length}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="p-3 rounded-xl bg-red-100 text-red-600">
+            <XOctagon className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rejected</p>
+            <p className="text-3xl font-extrabold text-red-600 leading-tight mt-0.5">{bookings.filter(b => b.status === 'Rejected').length}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Calendar Card */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
         <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -91,7 +190,7 @@ export default function AuditoriumBooking() {
           Availability Schedule
         </h2>
         <div className="rounded-xl overflow-hidden border border-slate-200/60 bg-slate-50/50 p-2">
-          <BookingCalendar bookings={bookings} />
+          <BookingCalendar bookings={bookings} maintenances={maintenances} />
         </div>
       </div>
 
@@ -138,7 +237,7 @@ export default function AuditoriumBooking() {
                     <td className="p-4 align-middle">
                       <div className="flex items-center gap-2 text-sm text-slate-700 font-medium whitespace-nowrap">
                         <Calendar className="w-4 h-4 text-slate-400" />
-                        {b.date}
+                        {formatDate(b.date)}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 whitespace-nowrap">
                         <Clock className="w-4 h-4 text-slate-400" />
@@ -165,7 +264,7 @@ export default function AuditoriumBooking() {
                           <div className="flex bg-slate-100 rounded-lg p-1 mr-2 border border-slate-200">
                             <button
                               title="Approve"
-                              onClick={() => updateStatus(index, "Approved")}
+                              onClick={() => updateStatus(b.id, "Approved")}
                               className="p-1.5 text-emerald-600 hover:bg-white rounded-md transition-colors"
                             >
                               <CheckCircle className="w-4 h-4" />
@@ -173,7 +272,7 @@ export default function AuditoriumBooking() {
                             <div className="w-px bg-slate-200 mx-0.5"></div>
                             <button
                               title="Reject"
-                              onClick={() => updateStatus(index, "Rejected")}
+                              onClick={() => updateStatus(b.id, "Rejected")}
                               className="p-1.5 text-red-600 hover:bg-white rounded-md transition-colors"
                             >
                               <XOctagon className="w-4 h-4" />
@@ -184,19 +283,30 @@ export default function AuditoriumBooking() {
                         {/* General Actions */}
                         <button
                           title="Edit"
-                          onClick={() => navigate(`/edit-booking/${index}`)}
+                          onClick={() => navigate(`/edit-booking/${b.id}`)}
                           className="p-2 text-brand-600 bg-brand-50 hover:bg-brand-100 hover:text-brand-700 rounded-lg transition-colors border border-brand-100"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
-                        <button
-                          title="Delete"
-                          onClick={() => deleteBooking(index)}
-                          className="p-2 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg transition-colors border border-red-100"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-
+                        {userRole === "admin" ? (
+                          <button
+                            title="Hard Delete"
+                            onClick={() => deleteBooking(b.id, b.name)}
+                            className="p-2 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg transition-colors border border-red-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          b.status !== "Denied" && (
+                            <button
+                              title="Deny Booking"
+                              onClick={() => denyBooking(b.id, b.name)}
+                              className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-700 rounded-lg transition-colors border border-slate-200"
+                            >
+                              <XOctagon className="w-4 h-4" />
+                            </button>
+                          )
+                        )}
                       </div>
                     </td>
 
@@ -207,6 +317,10 @@ export default function AuditoriumBooking() {
           </table>
         </div>
       </div>
+      <CustomModal 
+        {...modalConfig} 
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })} 
+      />
     </DashboardLayout>
   );
 }

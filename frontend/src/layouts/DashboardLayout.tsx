@@ -5,11 +5,14 @@ import {
   MonitorPlay, 
   BookOpen, 
   Bus,
-  Ship,
   Bell,
   Search,
-  UserCircle
+  UserCircle,
+  Car,
+  School,
+  Wrench
 } from "lucide-react";
+import logoImg from "../assets/logo.png";
 
 export default function DashboardLayout({ children }: any) {
   const navigate = useNavigate();
@@ -28,6 +31,12 @@ export default function DashboardLayout({ children }: any) {
     { path: "/transport-booking", label: "Transport Booking", icon: Bus },
   ];
 
+  if (userRole === "admin") {
+    navItems.push({ path: "/manage-vehicles", label: "Manage Vehicles", icon: Car });
+    navItems.push({ path: "/manage-classrooms", label: "Manage Classrooms", icon: School });
+    navItems.push({ path: "/manage-maintenance", label: "Manage Maintenance", icon: Wrench });
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
 
@@ -35,13 +44,13 @@ export default function DashboardLayout({ children }: any) {
       <aside className="w-72 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 relative z-20 shadow-2xl">
         
         {/* Logo/Brand Area */}
-        <div className="h-20 flex items-center px-6 border-b border-slate-800 bg-slate-950/50">
+        <div className="h-24 flex items-center px-6 border-b border-slate-800 bg-slate-950/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-brand-600 rounded-lg text-white">
-              <Ship className="w-6 h-6" />
+            <div className="w-14 h-14 flex items-center justify-center">
+              <img src={logoImg} alt="SLPA Logo" className="w-full h-full object-contain drop-shadow-sm" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white leading-tight">MPMA</h2>
+              <h2 className="text-xl font-bold text-white leading-tight">MPMA</h2>
               <p className="text-xs text-slate-400 font-medium tracking-wide border-t border-slate-800 pt-0.5 mt-0.5">ERP SYSTEM</p>
             </div>
           </div>

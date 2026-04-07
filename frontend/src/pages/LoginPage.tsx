@@ -1,10 +1,51 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Ship, Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight, User } from "lucide-react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import logoImg from "../assets/logo.png";
+import { fetchApi } from "../utils/api";
 
 export default function LoginPage() {
   const [role, setRole] = useState("user");
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const navigate = useNavigate();
+
+  const handleAuth = async (e: any) => {
+    e.preventDefault();
+    try {
+      if (isLogin) {
+        const res = await fetchApi('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password })
+        });
+        
+        if (res.user.role !== role) {
+          throw new Error(`Invalid portal. Please sign in using the ${res.user.role === 'admin' ? 'Administrator' : 'Regular User'} tab.`);
+        }
+
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("userRole", res.user.role);
+        toast.success("Login Successful!");
+        navigate("/dashboard");
+      } else {
+        if (!name) return toast.error("Name is required");
+        const res = await fetchApi('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ name, email, password, role })
+        });
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("userRole", res.user.role);
+        toast.success("Account Created Successfully!");
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Authentication Failed");
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50 overflow-hidden font-sans">
@@ -18,11 +59,11 @@ export default function LoginPage() {
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[30rem] h-[30rem] rounded-full bg-blue-400 blur-3xl opacity-20" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-white/10 rounded-xl backdrop-blur-md border border-white/20">
-              <Ship className="w-8 h-8 text-brand-200" />
+          <div className="flex flex-col items-start gap-4">
+            <div className="w-48 h-48 flex items-center justify-center relative z-20">
+              <img src={logoImg} alt="SLPA Logo" className="w-full h-full object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-white">
+            <span className="text-4xl font-bold tracking-tight text-white drop-shadow-md">
               MPMA ERP
             </span>
           </div>
@@ -47,16 +88,16 @@ export default function LoginPage() {
         <div className="mx-auto w-full max-w-md">
           
           <div className="mb-10 text-center lg:text-left">
-            <div className="lg:hidden flex justify-center mb-6">
-               <div className="p-4 bg-brand-50 rounded-2xl text-brand-600 shadow-sm border border-brand-100">
-                <Ship className="w-10 h-10" />
+            <div className="lg:hidden flex justify-center mb-8">
+               <div className="w-36 h-36 flex items-center justify-center">
+                <img src={logoImg} alt="SLPA Logo" className="w-full h-full object-contain drop-shadow-md" />
                </div>
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-              Welcome back
+              {isLogin ? "Welcome back" : "Create Account"}
             </h2>
             <p className="mt-2 text-sm text-gray-500">
-              Please sign in to your account
+              {isLogin ? "Please sign in to your account" : "Join the MPMA ERP platform"}
             </p>
           </div>
 
@@ -86,7 +127,27 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="space-y-6">
+            <form onSubmit={handleAuth} className="space-y-6">
+              {!isLogin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50/50 text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-colors duration-200 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Email Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -98,8 +159,11 @@ export default function LoginPage() {
                   </div>
                   <input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50/50 text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-colors duration-200 outline-none"
+                    required
                   />
                 </div>
               </div>
@@ -115,29 +179,41 @@ export default function LoginPage() {
                   </div>
                   <input
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                     className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50/50 text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-colors duration-200 outline-none"
+                    required
                   />
                 </div>
-                <div className="mt-2 flex items-center justify-end">
-                  <a href="#" className="text-xs font-medium text-brand-600 hover:text-brand-500">
-                    Forgot password?
-                  </a>
-                </div>
+                {isLogin && (
+                  <div className="mt-2 flex items-center justify-end">
+                    <a href="#" className="text-xs font-medium text-brand-600 hover:text-brand-500">
+                      Forgot password?
+                    </a>
+                  </div>
+                )}
               </div>
 
               {/* Submit Button */}
               <button
-                onClick={() => {
-                  localStorage.setItem("userRole", role);
-                  navigate("/dashboard");
-                }}
+                type="submit"
                 className="w-full flex justify-center items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-brand-500/30 transition-all duration-200 hover:-translate-y-0.5"
               >
-                Sign In
+                {isLogin ? "Sign In" : "Sign Up"}
                 <ArrowRight className="w-5 h-5" />
               </button>
-            </div>
+
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-sm font-medium text-brand-600 hover:text-brand-500"
+                >
+                  {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                </button>
+              </div>
+            </form>
             
           </div>
         </div>
