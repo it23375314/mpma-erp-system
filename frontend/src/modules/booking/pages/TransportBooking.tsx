@@ -12,11 +12,14 @@ import {
   Bus,
   Calendar,
   Clock,
-  Users,
-  Filter
+  Users, 
+  Filter,
+  Download,
+  FileText
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
+import { generateBookingSlip, generateListReport } from "../../../utils/PDFGenerator";
 import CustomModal from "../components/CustomModal";
 
 export default function TransportBooking() {
@@ -137,6 +140,21 @@ export default function TransportBooking() {
     });
   };
 
+  const handleExportList = () => {
+    const columns = ["Requester", "Department", "Vehicle", "From", "To", "Dates", "Status"];
+    const rows = filteredBookings.map(b => [
+      b.requesterName || b.name,
+      b.department || 'N/A',
+      b.vehicle?.name || b.vehicleName || 'Unassigned',
+      b.pickupLocation || b.pickup,
+      b.destination,
+      `${formatDate(b.departureDate)} - ${formatDate(b.returnDate)}`,
+      b.status
+    ]);
+    generateListReport("Transport Bookings Report", columns, rows);
+    toast.info("Generating report...");
+  };
+
   return (
     <DashboardLayout>
       
@@ -155,13 +173,22 @@ export default function TransportBooking() {
             Manage and monitor reservations for academy transport vehicles.
           </p>
         </div>
-        <button
-          onClick={() => navigate("/new-transport-booking")}
-          className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-brand-500/20 transition-all font-semibold"
-        >
-          <Plus className="w-5 h-5" />
-          New Request
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportList}
+            className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl shadow-sm hover:bg-slate-50 transition-all font-semibold"
+          >
+            <Download className="w-5 h-5 text-slate-400" />
+            Export Report
+          </button>
+          <button
+            onClick={() => navigate("/new-transport-booking")}
+            className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-brand-500/20 transition-all font-semibold"
+          >
+            <Plus className="w-5 h-5" />
+            New Request
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -321,6 +348,14 @@ export default function TransportBooking() {
                         )}
 
                         <button title="Edit" onClick={() => navigate(`/edit-transport-booking/${b.id}`)} className="p-2 text-brand-600 bg-brand-50 hover:bg-brand-100 hover:text-brand-700 rounded-lg transition-colors border border-brand-100"><Edit3 className="w-4 h-4" /></button>
+                        
+                        <button 
+                          title="Download Slip" 
+                          onClick={() => generateBookingSlip('Transport', b)} 
+                          className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
                         
                         {userRole === "admin" ? (
                           <button 
