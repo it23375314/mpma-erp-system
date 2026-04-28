@@ -155,12 +155,13 @@ export default function BookingCalendar({ bookings, maintenances }: any) {
       <Tooltip 
         id="calendar-tooltip" 
         className="z-50"
+        noArrow={false}
+        opacity={1}
+        border="1px solid #e5e7eb"
         style={{ 
           backgroundColor: 'white', 
           color: '#1f2937', 
           padding: '16px', 
-          opacity: 1, 
-          border: '1px solid #e5e7eb', 
           zIndex: 9999, 
           borderRadius: '8px', 
           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' 
