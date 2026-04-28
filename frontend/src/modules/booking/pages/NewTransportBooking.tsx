@@ -37,16 +37,18 @@ export default function NewTransportBooking() {
   };
 
   const [form, setForm] = useState({
-    name: "",
-    contact: "",
+    requesterName: "",
+    designation: "",
+    department: "",
+    contactNumber: "",
     departureDate: "",
     returnDate: "",
-    vehicle: "",
     departureTime: "",
-    pickup: "",
+    vehicleId: "",
+    pickupLocation: "",
     destination: "",
-    participants: "",
-    description: ""
+    passengers: "",
+    purpose: ""
   });
 
   const [maintenanceWarnings, setMaintenanceWarnings] = useState<any[]>([]);
@@ -75,11 +77,11 @@ export default function NewTransportBooking() {
   const handleChange = (e: any) => {
     const updated = { ...form, [e.target.name]: e.target.value };
     setForm(updated);
-    if (e.target.name === 'departureDate' || e.target.name === 'returnDate' || e.target.name === 'vehicle') {
+    if (e.target.name === 'departureDate' || e.target.name === 'returnDate' || e.target.name === 'vehicleId') {
       checkMaintenanceForDate(
         e.target.name === 'departureDate' ? e.target.value : form.departureDate,
         e.target.name === 'returnDate' ? e.target.value : form.returnDate,
-        e.target.name === 'vehicle' ? e.target.value : form.vehicle
+        e.target.name === 'vehicleId' ? e.target.value : form.vehicleId
       );
     }
   };
@@ -87,7 +89,7 @@ export default function NewTransportBooking() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (!form.name || !form.contact || !form.departureDate || !form.returnDate || !form.vehicle || !form.departureTime || !form.pickup || !form.destination || !form.participants) {
+    if (!form.requesterName || !form.contactNumber || !form.department || !form.designation || !form.departureDate || !form.returnDate || !form.vehicleId || !form.departureTime || !form.pickupLocation || !form.destination || !form.passengers) {
       toast.error("Please fill all required fields");
       return;
     }
@@ -108,7 +110,7 @@ export default function NewTransportBooking() {
         method: 'POST',
         body: JSON.stringify({
           facilityType: 'Transport',
-          facilityId: form.vehicle,
+          facilityId: form.vehicleId,
           dateFrom: form.departureDate,
           dateTo: form.returnDate,
           timeFrom: form.departureTime,
@@ -119,7 +121,7 @@ export default function NewTransportBooking() {
       if (maintenanceCheck.hasConflict) {
         // Only block if the maintenance is for THIS specific vehicle OR it's a general transport block
         const specificConflict = maintenanceCheck.conflicts.find((m: any) => 
-          !m.facilityId || m.facilityId === form.vehicle
+          !m.facilityId || m.facilityId === form.vehicleId
         );
 
         if (specificConflict) {
@@ -130,10 +132,8 @@ export default function NewTransportBooking() {
 
       const payload = {
         ...form,
-        vehicleId: form.vehicle,
-        passengers: Number(form.participants),
-        designation: form.contact, 
-        purpose: form.description || "Trip",
+        passengers: Number(form.passengers),
+        purpose: form.purpose || "Trip",
         requestedDate: today
       };
 
@@ -187,7 +187,25 @@ export default function NewTransportBooking() {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Requester Name <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><User className="w-5 h-5 text-slate-400" /></div>
-                <input name="name" value={form.name} onChange={handleChange} placeholder="Full Name" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
+                <input name="requesterName" value={form.requesterName} onChange={handleChange} placeholder="Full Name" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
+              </div>
+            </div>
+
+            {/* Designation */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Designation <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><User className="w-5 h-5 text-slate-400" /></div>
+                <input name="designation" value={form.designation} onChange={handleChange} placeholder="e.g. Lecturer / Manager" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
+              </div>
+            </div>
+
+            {/* Department */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Department <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><MapPin className="w-5 h-5 text-slate-400" /></div>
+                <input name="department" value={form.department} onChange={handleChange} placeholder="e.g. IT / Engineering" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
               </div>
             </div>
 
@@ -196,7 +214,7 @@ export default function NewTransportBooking() {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Contact Number <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Phone className="w-5 h-5 text-slate-400" /></div>
-                <input name="contact" value={form.contact} onChange={handleChange} placeholder="0xxxxxxxxx" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
+                <input name="contactNumber" value={form.contactNumber} onChange={handleChange} placeholder="0xxxxxxxxx" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
               </div>
             </div>
           </div>
@@ -234,11 +252,11 @@ export default function NewTransportBooking() {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Choose Vehicle <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Car className="w-5 h-5 text-slate-400" /></div>
-                <select name="vehicle" value={form.vehicle} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none appearance-none" required>
+                <select name="vehicleId" value={form.vehicleId} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none appearance-none" required>
                   <option value="" disabled>Select a vehicle</option>
                   {vehicles.length === 0 && <option value="" disabled>No vehicles available</option>}
                   {vehicles.map((v) => (
-                    <option key={v._id} value={v._id}>{v.name} ({v.type} - {v.isAc ? 'AC' : 'Non-AC'}) - Cap: {v.capacity}</option>
+                    <option key={v.id || v._id} value={v.id || v._id}>{v.name} ({v.type} - {v.isAc ? 'AC' : 'Non-AC'}) - Cap: {v.capacity}</option>
                   ))}
                 </select>
               </div>
@@ -249,7 +267,7 @@ export default function NewTransportBooking() {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Pickup Location <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><MapPin className="w-5 h-5 text-slate-400" /></div>
-                <input name="pickup" value={form.pickup} onChange={handleChange} placeholder="e.g. Main Gate" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
+                <input name="pickupLocation" value={form.pickupLocation} onChange={handleChange} placeholder="e.g. Main Gate" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
               </div>
             </div>
 
@@ -268,7 +286,7 @@ export default function NewTransportBooking() {
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Number of Passengers <span className="text-red-500">*</span></label>
               <div className="relative">
-                <input type="number" name="participants" value={form.participants} onChange={handleChange} placeholder="E.g., 5" min="1" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
+                <input type="number" name="passengers" value={form.passengers} onChange={handleChange} placeholder="E.g., 5" min="1" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
               </div>
             </div>
           </div>
@@ -279,7 +297,7 @@ export default function NewTransportBooking() {
               <div className="absolute top-3.5 left-0 pl-3.5 pointer-events-none">
                 <FileText className="w-5 h-5 text-slate-400" />
               </div>
-              <textarea name="description" value={form.description} onChange={handleChange} placeholder="Provide details about the trip..." rows={4} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none resize-none" required />
+              <textarea name="purpose" value={form.purpose} onChange={handleChange} placeholder="Provide details about the trip..." rows={4} className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none resize-none" required />
             </div>
           </div>
 

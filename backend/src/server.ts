@@ -11,10 +11,15 @@ import auditoriumBookingRoutes from './routes/auditoriumBookingRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import Maintenance from './models/Maintenance';
+import { Classroom } from './models/Classroom';
+import { Vehicle } from './models/Vehicle';
+import { ClassroomBooking } from './models/ClassroomBooking';
+import { TransportBooking } from './models/TransportBooking';
 import { setupAssociations } from './models/associations';
 
 // Set up model relationships
 setupAssociations();
+
 
 // Load env vars
 dotenv.config();

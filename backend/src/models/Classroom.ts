@@ -34,7 +34,18 @@ Classroom.init(
     facilities: { 
       type: DataTypes.JSON, 
       allowNull: false,
-      defaultValue: [] 
+      defaultValue: [],
+      get() {
+        const rawValue = this.getDataValue('facilities');
+        if (typeof rawValue === 'string') {
+          try {
+            return JSON.parse(rawValue);
+          } catch (e) {
+            return [];
+          }
+        }
+        return rawValue || [];
+      }
     },
   },
   {

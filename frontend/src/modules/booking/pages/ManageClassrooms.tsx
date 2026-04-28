@@ -323,7 +323,7 @@ export default function ManageClassrooms() {
                             {c.location} • Capacity: <strong className="text-slate-700">{c.capacity} pax</strong>
                           </div>
                           
-                          {c.facilities && c.facilities.length > 0 && (
+                          {Array.isArray(c.facilities) && c.facilities.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-3">
                               {c.facilities.map((f: string) => (
                                 <span key={f} className="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
