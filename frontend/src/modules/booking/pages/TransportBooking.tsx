@@ -22,6 +22,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
 import { generateBookingSlip, generateListReport } from "../../../utils/PDFGenerator";
 import CustomModal from "../components/CustomModal";
+import ReportExportModal from "../components/ReportExportModal";
 
 export default function TransportBooking() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function TransportBooking() {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
@@ -142,9 +144,28 @@ export default function TransportBooking() {
     });
   };
 
-  const handleExportList = () => {
+  const handleExportList = (filters: { startDate: string; endDate: string; scope: string }) => {
+    const { startDate, endDate, scope } = filters;
+    
+    // Filter bookings by date and scope
+    const reportBookings = bookings.filter(b => {
+      const bDate = new Date(b.departureDate);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      
+      const isInRange = (!start || bDate >= start) && (!end || bDate <= end);
+      const isCorrectScope = scope === "all" || (b.vehicle?.id || b.vehicleId || b.vehicle) === scope;
+      
+      return isInRange && isCorrectScope;
+    });
+
+    if (reportBookings.length === 0) {
+      toast.warning("No bookings found for the selected period and scope.");
+      return;
+    }
+
     const columns = ["Requester", "Division", "Vehicle", "From", "To", "Dates", "Est. KM", "Status"];
-    const rows = filteredBookings.map(b => [
+    const rows = reportBookings.map(b => [
       b.requesterName || b.name,
       b.department || 'N/A',
       b.vehicle?.name || b.vehicleName || 'Unassigned',
@@ -154,8 +175,13 @@ export default function TransportBooking() {
       `${b.estimatedKm || 'N/A'} KM`,
       b.status
     ]);
-    generateListReport("Transport Bookings Report", columns, rows);
-    toast.info("Generating report...");
+
+    const title = scope === "all" 
+      ? `Transport Bookings (${startDate} to ${endDate})`
+      : `Vehicle Report (${startDate} to ${endDate})`;
+
+    generateListReport(title, columns, rows);
+    toast.success(`Exporting ${reportBookings.length} records...`);
   };
 
   return (
@@ -178,7 +204,7 @@ export default function TransportBooking() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExportList}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl shadow-sm hover:bg-slate-50 transition-all font-semibold"
           >
             <Download className="w-5 h-5 text-slate-400" />
@@ -417,6 +443,14 @@ export default function TransportBooking() {
           </table>
         </div>
       </div>
+
+      <ReportExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExportList}
+        type="Transport"
+        options={vehicles}
+      />
 
       <CustomModal 
         {...modalConfig} 

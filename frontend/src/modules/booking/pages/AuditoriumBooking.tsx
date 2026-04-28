@@ -21,12 +21,14 @@ import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
 import { generateBookingSlip, generateListReport } from "../../../utils/PDFGenerator";
 import CustomModal from "../components/CustomModal";
+import ReportExportModal from "../components/ReportExportModal";
 
 export default function AuditoriumBooking() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [maintenances, setMaintenances] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
@@ -121,17 +123,34 @@ export default function AuditoriumBooking() {
     });
   };
 
-  const handleExportList = () => {
+  const handleExportList = (filters: { startDate: string; endDate: string; scope: string }) => {
+    const { startDate, endDate } = filters;
+    
+    // Filter bookings by date
+    const reportBookings = bookings.filter(b => {
+      const bDate = new Date(b.date);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      return (!start || bDate >= start) && (!end || bDate <= end);
+    });
+
+    if (reportBookings.length === 0) {
+      toast.warning("No bookings found for the selected period.");
+      return;
+    }
+
     const columns = ["Requester", "Date", "Schedule", "Participants", "Status"];
-    const rows = bookings.map(b => [
+    const rows = reportBookings.map(b => [
       b.name,
       formatDate(b.date),
       `${b.start} - ${b.end}`,
       `${b.participants} PAX`,
       b.status
     ]);
-    generateListReport("Auditorium Bookings Report", columns, rows);
-    toast.info("Generating report...");
+
+    const title = `Auditorium Report (${startDate} to ${endDate})`;
+    generateListReport(title, columns, rows);
+    toast.success(`Exporting ${reportBookings.length} records...`);
   };
 
   return (
@@ -154,7 +173,7 @@ export default function AuditoriumBooking() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExportList}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl shadow-sm hover:bg-slate-50 transition-all font-semibold"
           >
             <Download className="w-5 h-5 text-slate-400" />
@@ -369,6 +388,14 @@ export default function AuditoriumBooking() {
           </table>
         </div>
       </div>
+      <ReportExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExportList}
+        type="Auditorium"
+        options={[]}
+      />
+
       <CustomModal 
         {...modalConfig} 
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })} 

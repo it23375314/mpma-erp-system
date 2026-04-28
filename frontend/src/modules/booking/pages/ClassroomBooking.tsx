@@ -22,6 +22,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
 import { generateBookingSlip, generateListReport } from "../../../utils/PDFGenerator";
 import CustomModal from "../components/CustomModal";
+import ReportExportModal from "../components/ReportExportModal";
 
 export default function ClassroomBooking() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function ClassroomBooking() {
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [selectedClassroom, setSelectedClassroom] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
@@ -130,17 +132,41 @@ export default function ClassroomBooking() {
     });
   };
 
-  const handleExportList = () => {
+  const handleExportList = (filters: { startDate: string; endDate: string; scope: string }) => {
+    const { startDate, endDate, scope } = filters;
+    
+    // Filter bookings by date and scope
+    const reportBookings = bookings.filter(b => {
+      const bDate = new Date(b.dateFrom || b.date);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      
+      const isInRange = (!start || bDate >= start) && (!end || bDate <= end);
+      const isCorrectScope = scope === "all" || (b.classroomId || b.classroom?.id) === scope;
+      
+      return isInRange && isCorrectScope;
+    });
+
+    if (reportBookings.length === 0) {
+      toast.warning("No bookings found for the selected period and scope.");
+      return;
+    }
+
     const columns = ["Requester", "Course", "Dates", "Time Slot", "Status"];
-    const rows = bookings.map(b => [
+    const rows = reportBookings.map(b => [
       b.requestingOfficerName || b.name,
       b.courseName,
       `${formatDate(b.dateFrom)} - ${formatDate(b.dateTo)}`,
       `${b.start} - ${b.end}`,
       b.status
     ]);
-    generateListReport("Classroom Bookings Report", columns, rows);
-    toast.info("Generating report...");
+    
+    const title = scope === "all" 
+      ? `Classroom Bookings (${startDate} to ${endDate})`
+      : `Classroom Report (${startDate} to ${endDate})`;
+
+    generateListReport(title, columns, rows);
+    toast.success(`Exporting ${reportBookings.length} records...`);
   };
 
   const StatusBadge = ({ status }: { status: string }) => {
@@ -176,7 +202,7 @@ export default function ClassroomBooking() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExportList}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl shadow-sm hover:bg-slate-50 transition-all font-semibold"
           >
             <Download className="w-5 h-5 text-slate-400" />
@@ -404,6 +430,14 @@ export default function ClassroomBooking() {
           </table>
         </div>
       </div>
+
+      <ReportExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExportList}
+        type="Classroom"
+        options={classrooms}
+      />
 
       <CustomModal 
         {...modalConfig} 
