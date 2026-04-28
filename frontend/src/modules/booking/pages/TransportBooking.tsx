@@ -176,9 +176,17 @@ export default function TransportBooking() {
       b.status
     ]);
 
+    const dateRange = startDate && endDate 
+      ? `(${startDate} to ${endDate})` 
+      : startDate ? `(From ${startDate})` : endDate ? `(Until ${endDate})` : "(All Time)";
+
+    const selectedVehicleName = scope !== "all" 
+      ? vehicles.find(v => v.id === scope)?.name || "Vehicle"
+      : "Transport";
+
     const title = scope === "all" 
-      ? `Transport Bookings (${startDate} to ${endDate})`
-      : `Vehicle Report (${startDate} to ${endDate})`;
+      ? `Transport Bookings ${dateRange}`
+      : `${selectedVehicleName} Report ${dateRange}`;
 
     generateListReport(title, columns, rows);
     toast.success(`Exporting ${reportBookings.length} records...`);

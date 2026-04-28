@@ -152,18 +152,27 @@ export default function ClassroomBooking() {
       return;
     }
 
-    const columns = ["Requester", "Course", "Dates", "Time Slot", "Status"];
+    const columns = ["Requester", "Course", "Classroom", "Dates", "Time Slot", "Status"];
     const rows = reportBookings.map(b => [
-      b.requestingOfficerName || b.name,
-      b.courseName,
+      b.requestingOfficerName || b.name || 'N/A',
+      b.courseName || 'N/A',
+      b.classroom?.name || 'N/A',
       `${formatDate(b.dateFrom)} - ${formatDate(b.dateTo)}`,
-      `${b.start} - ${b.end}`,
+      `${b.timeFrom || b.start || 'N/A'} - ${b.timeTo || b.end || 'N/A'}`,
       b.status
     ]);
     
+    const dateRange = startDate && endDate 
+      ? `(${startDate} to ${endDate})` 
+      : startDate ? `(From ${startDate})` : endDate ? `(Until ${endDate})` : "(All Time)";
+
+    const selectedClassroomName = scope !== "all" 
+      ? classrooms.find(c => c.id === scope)?.name || "Classroom"
+      : "Classroom";
+
     const title = scope === "all" 
-      ? `Classroom Bookings (${startDate} to ${endDate})`
-      : `Classroom Report (${startDate} to ${endDate})`;
+      ? `Classroom Bookings ${dateRange}`
+      : `${selectedClassroomName} Report ${dateRange}`;
 
     generateListReport(title, columns, rows);
     toast.success(`Exporting ${reportBookings.length} records...`);

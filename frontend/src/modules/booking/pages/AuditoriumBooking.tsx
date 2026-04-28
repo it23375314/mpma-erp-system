@@ -148,7 +148,11 @@ export default function AuditoriumBooking() {
       b.status
     ]);
 
-    const title = `Auditorium Report (${startDate} to ${endDate})`;
+    const dateRange = startDate && endDate 
+      ? `(${startDate} to ${endDate})` 
+      : startDate ? `(From ${startDate})` : endDate ? `(Until ${endDate})` : "(All Time)";
+
+    const title = `Auditorium Report ${dateRange}`;
     generateListReport(title, columns, rows);
     toast.success(`Exporting ${reportBookings.length} records...`);
   };
