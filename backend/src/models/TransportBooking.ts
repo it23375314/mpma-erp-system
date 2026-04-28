@@ -13,6 +13,7 @@ interface TransportBookingAttributes {
   destination: string;
   purpose: string;
   vehicleId: string;
+  estimatedKm?: string;
   status: string;
 }
 
@@ -29,6 +30,7 @@ export class TransportBooking extends Model<TransportBookingAttributes> implemen
   public destination!: string;
   public purpose!: string;
   public vehicleId!: string;
+  public estimatedKm!: string;
   public status!: string;
 }
 
@@ -50,6 +52,7 @@ TransportBooking.init(
     destination: { type: DataTypes.STRING, allowNull: false },
     purpose: { type: DataTypes.STRING, allowNull: false },
     vehicleId: { type: DataTypes.UUID, allowNull: false },
+    estimatedKm: { type: DataTypes.STRING, allowNull: true },
     status: { type: DataTypes.STRING, defaultValue: 'Pending' }
   },
   {

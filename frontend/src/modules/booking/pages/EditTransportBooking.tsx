@@ -25,6 +25,7 @@ export default function EditTransportBooking() {
     destination: "",
     purpose: "",
     vehicleId: "",
+    estimatedKm: "",
     status: "Pending"
   });
 
@@ -74,7 +75,7 @@ export default function EditTransportBooking() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (!form.requesterName || !form.contactNumber || !form.departureDate || !form.returnDate || !form.vehicleId || !form.departureTime || !form.pickupLocation || !form.destination) {
+    if (!form.requesterName || !form.contactNumber || !form.departureDate || !form.returnDate || !form.vehicleId || !form.departureTime || !form.pickupLocation || !form.destination || !form.estimatedKm) {
       toast.error("Please fill all required fields");
       return;
     }
@@ -98,7 +99,8 @@ export default function EditTransportBooking() {
           pickupLocation: form.pickupLocation,
           destination: form.destination,
           purpose: form.purpose,
-          vehicleId: form.vehicleId
+          vehicleId: form.vehicleId,
+          estimatedKm: form.estimatedKm
         })
       });
       toast.success("Transport request updated successfully!");
@@ -207,6 +209,13 @@ export default function EditTransportBooking() {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Destination *</label>
               <div className="relative"><div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Map className="w-5 h-5 text-slate-400" /></div>
                 <input name="destination" value={form.destination} onChange={handleChange} placeholder="e.g. Colombo Port" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all" required /></div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Estimated KM *</label>
+              <div className="relative">
+                <input type="number" name="estimatedKm" value={form.estimatedKm} onChange={handleChange} placeholder="e.g. 50" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all" required />
+              </div>
             </div>
 
           </div>

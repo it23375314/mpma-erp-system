@@ -141,7 +141,7 @@ export default function TransportBooking() {
   };
 
   const handleExportList = () => {
-    const columns = ["Requester", "Division", "Vehicle", "From", "To", "Dates", "Status"];
+    const columns = ["Requester", "Division", "Vehicle", "From", "To", "Dates", "Est. KM", "Status"];
     const rows = filteredBookings.map(b => [
       b.requesterName || b.name,
       b.department || 'N/A',
@@ -149,6 +149,7 @@ export default function TransportBooking() {
       b.pickupLocation || b.pickup,
       b.destination,
       `${formatDate(b.departureDate)} - ${formatDate(b.returnDate)}`,
+      `${b.estimatedKm || 'N/A'} KM`,
       b.status
     ]);
     generateListReport("Transport Bookings Report", columns, rows);
@@ -279,6 +280,7 @@ export default function TransportBooking() {
                 <th className="p-4 pl-6 whitespace-nowrap">Requester & Trip</th>
                 <th className="p-4 whitespace-nowrap">Vehicle Details</th>
                 <th className="p-4 whitespace-nowrap">Schedule</th>
+                <th className="p-4 whitespace-nowrap">Distance</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
                 <th className="p-4 pr-6 whitespace-nowrap text-right">Actions</th>
               </tr>
@@ -330,6 +332,11 @@ export default function TransportBooking() {
                         <Clock className="w-4 h-4 text-slate-400" />
                         Departs at {b.departureTime}
                       </div>
+                    </td>
+
+                    <td className="p-4 align-middle">
+                      <div className="text-sm font-bold text-slate-700">{b.estimatedKm || 'N/A'}</div>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Estimated KM</div>
                     </td>
 
                     <td className="p-4 align-middle text-center">

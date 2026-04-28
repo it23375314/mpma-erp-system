@@ -33,7 +33,8 @@ export const updateTransportBooking = async (req: Request, res: Response) => {
     const {
       requesterName, designation, department, contactNumber,
       departureDate, returnDate, departureTime,
-      pickupLocation, destination, purpose, vehicleId, status
+      pickupLocation, destination, purpose, vehicleId, status,
+      estimatedKm
     } = req.body;
 
     if (requesterName !== undefined) booking.requesterName = requesterName;
@@ -48,6 +49,7 @@ export const updateTransportBooking = async (req: Request, res: Response) => {
     if (purpose !== undefined) booking.purpose = purpose;
     if (vehicleId !== undefined) booking.vehicleId = vehicleId;
     if (status !== undefined) booking.status = status;
+    if (estimatedKm !== undefined) booking.estimatedKm = estimatedKm;
 
     await booking.save();
     res.status(200).json(booking);

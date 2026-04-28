@@ -50,6 +50,7 @@ export const generateBookingSlip = (type: 'Transport' | 'Classroom' | 'Auditoriu
     infoRows.push(['Route', `${data.pickupLocation || data.pickup} to ${data.destination}`]);
     infoRows.push(['Departure', `${formatDate(data.departureDate)} at ${data.departureTime}`]);
     infoRows.push(['Return', formatDate(data.returnDate)]);
+    infoRows.push(['Estimated KM', `${data.estimatedKm || 'N/A'} KM`]);
     infoRows.push(['Purpose', data.purpose || data.description || 'Trip']);
   } else if (type === 'Classroom') {
     infoRows.push(['Requester', data.requestingOfficerName || data.name]);
