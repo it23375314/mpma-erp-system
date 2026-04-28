@@ -141,7 +141,7 @@ export default function TransportBooking() {
   };
 
   const handleExportList = () => {
-    const columns = ["Requester", "Department", "Vehicle", "From", "To", "Dates", "Status"];
+    const columns = ["Requester", "Division", "Vehicle", "From", "To", "Dates", "Status"];
     const rows = filteredBookings.map(b => [
       b.requesterName || b.name,
       b.department || 'N/A',

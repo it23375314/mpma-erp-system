@@ -5,6 +5,7 @@ import { Vehicle } from '../models/Vehicle';
 import { TransportBooking } from '../models/TransportBooking';
 import { AuditoriumBooking } from '../models/AuditoriumBooking';
 import { setupAssociations } from '../models/associations';
+import Maintenance from '../models/Maintenance';
 
 const seedData = async () => {
   try {
@@ -103,6 +104,66 @@ const seedData = async () => {
 
     await AuditoriumBooking.bulkCreate(auditoriumBookings);
     console.log('5 Auditorium Bookings created.');
+
+    // Seed 5 Maintenance Records
+    const maintenanceCount = await Maintenance.count();
+    if (maintenanceCount === 0) {
+      const allClassrooms = await Classroom.findAll();
+      const allVehicles = await Vehicle.findAll();
+
+      const maintenances = [
+        {
+          title: 'AC Service - Classroom 101',
+          description: 'Routine AC maintenance and filter cleaning.',
+          facilityType: 'Classroom',
+          facilityId: allClassrooms[0]?.id,
+          dateFrom: '2026-05-10',
+          dateTo: '2026-05-10',
+          timeFrom: '09:00:00',
+          timeTo: '12:00:00'
+        },
+        {
+          title: 'Engine Tuning - Toyota Hiace',
+          description: 'Monthly engine checkup and oil change.',
+          facilityType: 'Transport',
+          facilityId: allVehicles[0]?.id,
+          dateFrom: '2026-05-12',
+          dateTo: '2026-05-12',
+          timeFrom: '08:00:00',
+          timeTo: '16:00:00'
+        },
+        {
+          title: 'Projector Repair - Classroom 105',
+          description: 'Replacing the bulb and cleaning the lens.',
+          facilityType: 'Classroom',
+          facilityId: allClassrooms[4]?.id,
+          dateFrom: '2026-05-15',
+          dateTo: '2026-05-15',
+          timeFrom: '13:00:00',
+          timeTo: '15:00:00'
+        },
+        {
+          title: 'Auditorium Seating Repair',
+          description: 'Fixing loose chairs in the main auditorium.',
+          facilityType: 'Auditorium',
+          dateFrom: '2026-05-20',
+          dateTo: '2026-05-22',
+          timeFrom: '09:00:00',
+          timeTo: '17:00:00'
+        },
+        {
+          title: 'General Roof Inspection',
+          description: 'Checking for leaks before the monsoon season.',
+          facilityType: 'General',
+          dateFrom: '2026-06-01',
+          dateTo: '2026-06-02',
+          timeFrom: '08:00:00',
+          timeTo: '12:00:00'
+        }
+      ];
+      await Maintenance.bulkCreate(maintenances);
+      console.log('5 Maintenance records created.');
+    }
 
     console.log('Seeding completed successfully.');
     process.exit(0);

@@ -159,7 +159,7 @@ export default function EditTransportBooking() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Department *</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Division *</label>
               <div className="relative"><div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Building2 className="w-5 h-5 text-slate-400" /></div>
                 <input name="department" value={form.department} onChange={handleChange} placeholder="e.g. Admin" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all" required /></div>
             </div>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { 
   LogOut, 
@@ -10,7 +11,10 @@ import {
   UserCircle,
   Car,
   School,
-  Wrench
+  Wrench,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList
 } from "lucide-react";
 import logoImg from "../assets/logo.png";
 
@@ -18,24 +22,28 @@ export default function DashboardLayout({ children }: any) {
   const navigate = useNavigate();
   const location = useLocation();
   const userRole = localStorage.getItem("userRole") || "user";
+  const [isBookingOpen, setIsBookingOpen] = useState(
+    location.pathname.includes("-booking") || location.pathname.includes("/manage-")
+  );
 
   const handleLogout = () => {
     localStorage.removeItem("userRole");
     navigate("/");
   };
 
-  const navItems = [
-    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  const bookingSubItems = [
     { path: "/auditorium-booking", label: "Auditorium Booking", icon: MonitorPlay },
     { path: "/classroom-booking", label: "Classroom Booking", icon: BookOpen },
     { path: "/transport-booking", label: "Transport Booking", icon: Bus },
   ];
 
   if (userRole === "admin") {
-    navItems.push({ path: "/manage-vehicles", label: "Manage Vehicles", icon: Car });
-    navItems.push({ path: "/manage-classrooms", label: "Manage Classrooms", icon: School });
-    navItems.push({ path: "/manage-maintenance", label: "Manage Maintenance", icon: Wrench });
+    bookingSubItems.push({ path: "/manage-vehicles", label: "Manage Vehicles", icon: Car });
+    bookingSubItems.push({ path: "/manage-classrooms", label: "Manage Classrooms", icon: School });
+    bookingSubItems.push({ path: "/manage-maintenance", label: "Manage Maintenance", icon: Wrench });
   }
+
+  const adminItems: any[] = []; // Now empty as they are moved
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
@@ -62,25 +70,61 @@ export default function DashboardLayout({ children }: any) {
             Main Menu
           </p>
           
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                  isActive 
-                    ? "bg-brand-600 text-white shadow-md shadow-brand-500/20" 
-                    : "hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                <Icon className={`w-5 h-5 transition-colors ${isActive ? "text-white" : "text-slate-400 group-hover:text-brand-400"}`} />
-                <span className="font-medium text-sm">{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
+          {/* Dashboard */}
+          <Link
+            to="/dashboard"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              location.pathname === "/dashboard" 
+                ? "bg-brand-600 text-white shadow-md shadow-brand-500/20" 
+                : "hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <LayoutDashboard className={`w-5 h-5 ${location.pathname === "/dashboard" ? "text-white" : "text-slate-400 group-hover:text-brand-400"}`} />
+            <span className="font-medium text-sm">Dashboard</span>
+          </Link>
+
+          {/* Booking Management Parent */}
+          <div className="space-y-1">
+            <button
+              onClick={() => setIsBookingOpen(!isBookingOpen)}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                isBookingOpen && !location.pathname.includes("/dashboard") && !adminItems.some(i => location.pathname.startsWith(i.path))
+                  ? "bg-slate-800/50 text-white"
+                  : "hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <ClipboardList className={`w-5 h-5 ${isBookingOpen ? "text-brand-400" : "text-slate-400 group-hover:text-brand-400"}`} />
+                <span className="font-medium text-sm">Booking Management</span>
+              </div>
+              {isBookingOpen ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+            </button>
+
+          {/* Submenu Items */}
+          {isBookingOpen && (
+            <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
+              {bookingSubItems.map((item) => {
+                const isActive = location.pathname.startsWith(item.path);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+                      isActive 
+                        ? "bg-brand-600/10 text-brand-400 font-semibold" 
+                        : "hover:bg-slate-800 hover:text-white"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? "text-brand-400" : "text-slate-500 group-hover:text-brand-400"}`} />
+                    <span className="text-xs">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </nav>
 
         {/* User Card & Logout */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/30">

@@ -44,7 +44,7 @@ export const generateBookingSlip = (type: 'Transport' | 'Classroom' | 'Auditoriu
   const infoRows = [];
   if (type === 'Transport') {
     infoRows.push(['Requester Name', data.requesterName || data.name]);
-    infoRows.push(['Department', data.department || 'N/A']);
+    infoRows.push(['Division', data.department || 'N/A']);
     infoRows.push(['Contact Number', data.contactNumber || data.contact]);
     infoRows.push(['Vehicle', data.vehicle?.name || data.vehicleName || 'N/A']);
     infoRows.push(['Route', `${data.pickupLocation || data.pickup} to ${data.destination}`]);
