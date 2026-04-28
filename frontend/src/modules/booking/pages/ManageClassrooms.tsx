@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../../layouts/DashboardLayout";
 import { toast } from "react-toastify";
-import { Plus, Trash2, MonitorPlay, School, BookOpen, Wrench, Edit3 } from "lucide-react";
+import { Plus, Trash2, MonitorPlay, School, BookOpen, Wrench, Edit3, Search } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchApi } from "../../../utils/api";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 export default function ManageClassrooms() {
   const navigate = useNavigate();
   const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const userRole = localStorage.getItem("userRole") || "user";
 
@@ -41,7 +42,8 @@ export default function ManageClassrooms() {
   const loadClassrooms = async () => {
     try {
       const data = await fetchApi('/classrooms');
-      setClassrooms(data);
+      const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      setClassrooms(sorted);
     } catch (error) {
       toast.error("Failed to load classrooms");
     }
@@ -287,11 +289,25 @@ export default function ManageClassrooms() {
         {/* Classrooms List */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800">Classroom Registry</h2>
-              <span className="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
-                Total: {classrooms.length}
-              </span>
+            <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50/50 gap-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-lg font-bold text-slate-800">Classroom Registry</h2>
+                <span className="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+                  Total: {classrooms.length}
+                </span>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="w-4 h-4 text-slate-400" />
+                </div>
+                <input 
+                  type="text"
+                  placeholder="Search classrooms..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all shadow-sm"
+                />
+              </div>
             </div>
 
             <div className="p-5">
@@ -303,7 +319,12 @@ export default function ManageClassrooms() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
-                  {classrooms.map((c, index) => (
+                  {classrooms
+                    .filter(c => 
+                      c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      c.location.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((c, index) => (
                     <div key={index} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:border-pink-200 hover:shadow-md transition-all group gap-4">
                       
                       <div className="flex items-start gap-4 flex-1">

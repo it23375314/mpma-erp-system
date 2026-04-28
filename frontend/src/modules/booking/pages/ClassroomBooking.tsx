@@ -13,8 +13,10 @@ import {
   Calendar,
   Clock,
   Users,
+  Filter,
   Download,
-  FileText
+  FileText,
+  Search
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
@@ -25,12 +27,16 @@ export default function ClassroomBooking() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [maintenances, setMaintenances] = useState<any[]>([]);
+  const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [selectedClassroom, setSelectedClassroom] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
   useEffect(() => {
     loadBookings();
     loadMaintenances();
+    loadClassrooms();
   }, []);
 
   const loadBookings = async () => {
@@ -50,6 +56,24 @@ export default function ClassroomBooking() {
       console.error("Failed to load maintenances", error);
     }
   };
+
+  const loadClassrooms = async () => {
+    try {
+      const data = await fetchApi('/classrooms');
+      const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      setClassrooms(sorted);
+    } catch (error) {
+      console.error("Failed to load classrooms", error);
+    }
+  };
+
+  const filteredBookings = selectedClassroom === "all" 
+    ? bookings 
+    : bookings.filter(b => (b.classroomId || b.classroom?.id) === selectedClassroom);
+
+  const filteredMaintenances = selectedClassroom === "all"
+    ? maintenances
+    : maintenances.filter(m => m.facilityType === 'General' || m.facilityId === selectedClassroom);
 
   const updateStatus = async (id: string, status: string) => {
     try {
@@ -210,22 +234,57 @@ export default function ClassroomBooking() {
 
       {/* Calendar Card */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
-        <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-brand-500" />
-          Availability Schedule
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-brand-500" />
+            Availability Schedule
+          </h2>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="w-4 h-4 text-slate-400" />
+              </div>
+              <select 
+                value={selectedClassroom}
+                onChange={(e) => setSelectedClassroom(e.target.value)}
+                className="pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none appearance-none cursor-pointer hover:bg-white transition-all shadow-sm"
+              >
+                <option value="all">All Classrooms</option>
+                {classrooms.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-xl overflow-hidden border border-slate-200/60 bg-slate-50/50 p-2">
-          <BookingCalendar bookings={bookings} maintenances={maintenances} />
+          <BookingCalendar bookings={filteredBookings} maintenances={filteredMaintenances} />
         </div>
       </div>
 
       {/* Data Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
-          <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-            Total: {bookings.length}
-          </span>
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
+            <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+              Total: {bookings.length}
+            </span>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="w-4 h-4 text-slate-400" />
+            </div>
+            <input 
+              type="text"
+              placeholder="Search by requester or course..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none shadow-sm"
+            />
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -257,7 +316,15 @@ export default function ClassroomBooking() {
                   </td>
                 </tr>
               ) : (
-                bookings.map((b, index) => (
+                bookings
+                  .filter(b => {
+                    const search = searchQuery.toLowerCase();
+                    return (
+                      (b.name || b.requestingOfficerName || "").toLowerCase().includes(search) ||
+                      (b.courseName || "").toLowerCase().includes(search)
+                    );
+                  })
+                  .map((b, index) => (
                   <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                     
                     <td className="p-4 pl-6 align-middle">

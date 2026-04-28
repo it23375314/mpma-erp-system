@@ -14,7 +14,8 @@ import {
   Clock,
   Users,
   Download,
-  FileText
+  FileText,
+  Search
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
@@ -25,6 +26,7 @@ export default function AuditoriumBooking() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [maintenances, setMaintenances] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
@@ -221,11 +223,25 @@ export default function AuditoriumBooking() {
 
       {/* Data Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
-          <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-            Total: {bookings.length}
-          </span>
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
+            <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+              Total: {bookings.length}
+            </span>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="w-4 h-4 text-slate-400" />
+            </div>
+            <input 
+              type="text"
+              placeholder="Search by requester..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none shadow-sm"
+            />
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -251,7 +267,9 @@ export default function AuditoriumBooking() {
                   </td>
                 </tr>
               ) : (
-                bookings.map((b, index) => (
+                bookings
+                  .filter(b => (b.name || "").toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((b, index) => (
                   <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                     
                     <td className="p-4 pl-6 align-middle">

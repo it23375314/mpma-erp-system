@@ -36,7 +36,8 @@ export default function EditTransportBooking() {
           fetchApi('/vehicles'),
           fetchApi('/transport-bookings')
         ]);
-        setVehicles(vehicleData);
+        const sortedVehicles = [...vehicleData].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+        setVehicles(sortedVehicles);
 
         const booking = bookingData.find((b: any) => b.id === id);
         if (booking) {
@@ -52,6 +53,7 @@ export default function EditTransportBooking() {
             destination: booking.destination || "",
             purpose: booking.purpose || "",
             vehicleId: booking.vehicleId || "",
+            estimatedKm: booking.estimatedKm || "",
             status: booking.status || "Pending"
           });
         } else {
