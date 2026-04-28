@@ -23,7 +23,22 @@ ClassroomBooking.init({
     courseCoordinator: { type: db_1.DataTypes.STRING, allowNull: false },
     timeFrom: { type: db_1.DataTypes.STRING, allowNull: false },
     timeTo: { type: db_1.DataTypes.STRING, allowNull: false },
-    preferredDaysOfWeek: { type: db_1.DataTypes.JSON, defaultValue: [] },
+    preferredDaysOfWeek: {
+        type: db_1.DataTypes.JSON,
+        defaultValue: [],
+        get() {
+            const rawValue = this.getDataValue('preferredDaysOfWeek');
+            if (typeof rawValue === 'string') {
+                try {
+                    return JSON.parse(rawValue);
+                }
+                catch (e) {
+                    return [];
+                }
+            }
+            return rawValue || [];
+        }
+    },
     paidCourse: { type: db_1.DataTypes.STRING, allowNull: false },
     classroomId: { type: db_1.DataTypes.UUID, allowNull: false },
     exam: { type: db_1.DataTypes.STRING, allowNull: false },

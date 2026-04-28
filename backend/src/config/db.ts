@@ -2,10 +2,18 @@ import { Sequelize, DataTypes, Model, Optional } from 'sequelize';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const sequelize = new Sequelize(process.env.MYSQL_URI || 'mysql://root:@localhost:3306/mpma_erp', {
-  dialect: 'mysql',
-  logging: false, // Set to console.log to see SQL queries
-});
+const sequelize = new Sequelize(
+  "myproject",   // database
+  "root",        // user
+  "",            // password (EMPTY)
+  {
+    host: "localhost",
+    dialect: "mysql",
+    logging: false,
+  }
+);
+
+console.log("Connecting with password:", "");
 
 const connectDB = async () => {
   try {
