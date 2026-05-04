@@ -22,6 +22,7 @@ TransportBooking.init({
     destination: { type: db_1.DataTypes.STRING, allowNull: false },
     purpose: { type: db_1.DataTypes.STRING, allowNull: false },
     vehicleId: { type: db_1.DataTypes.UUID, allowNull: false },
+    estimatedKm: { type: db_1.DataTypes.STRING, allowNull: true },
     status: { type: db_1.DataTypes.STRING, defaultValue: 'Pending' }
 }, {
     sequelize: db_1.sequelize,

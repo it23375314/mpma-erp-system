@@ -3,17 +3,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const sequelize = new Sequelize(
-  "myproject",   // database
-  "root",        // user
-  "",            // password (EMPTY)
+  process.env.DB_NAME || 'mpma_erp2',
+  process.env.DB_USER || 'root',
+  process.env.DB_PASSWORD || 'root123',
   {
-    host: "localhost",
-    dialect: "mysql",
+    host: process.env.DB_HOST || 'localhost',
+    dialect: 'mysql',
     logging: false,
   }
 );
-
-console.log("Connecting with password:", "");
 
 const connectDB = async () => {
   try {

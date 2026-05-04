@@ -42,7 +42,7 @@ const updateTransportBooking = (req, res) => __awaiter(void 0, void 0, void 0, f
         });
         if (!booking)
             return res.status(404).json({ message: 'Booking not found' });
-        const { requesterName, designation, department, contactNumber, departureDate, returnDate, departureTime, pickupLocation, destination, purpose, vehicleId, status } = req.body;
+        const { requesterName, designation, department, contactNumber, departureDate, returnDate, departureTime, pickupLocation, destination, purpose, vehicleId, status, estimatedKm } = req.body;
         if (requesterName !== undefined)
             booking.requesterName = requesterName;
         if (designation !== undefined)
@@ -67,6 +67,8 @@ const updateTransportBooking = (req, res) => __awaiter(void 0, void 0, void 0, f
             booking.vehicleId = vehicleId;
         if (status !== undefined)
             booking.status = status;
+        if (estimatedKm !== undefined)
+            booking.estimatedKm = estimatedKm;
         yield booking.save();
         res.status(200).json(booking);
     }
