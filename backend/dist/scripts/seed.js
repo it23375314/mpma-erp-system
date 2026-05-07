@@ -8,6 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../config/db");
 const Classroom_1 = require("../models/Classroom");
@@ -15,7 +18,9 @@ const Vehicle_1 = require("../models/Vehicle");
 const TransportBooking_1 = require("../models/TransportBooking");
 const AuditoriumBooking_1 = require("../models/AuditoriumBooking");
 const associations_1 = require("../models/associations");
+const Maintenance_1 = __importDefault(require("../models/Maintenance"));
 const seedData = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     try {
         // Setup associations
         (0, associations_1.setupAssociations)();
@@ -100,6 +105,64 @@ const seedData = () => __awaiter(void 0, void 0, void 0, function* () {
         }
         yield AuditoriumBooking_1.AuditoriumBooking.bulkCreate(auditoriumBookings);
         console.log('5 Auditorium Bookings created.');
+        // Seed 5 Maintenance Records
+        const maintenanceCount = yield Maintenance_1.default.count();
+        if (maintenanceCount === 0) {
+            const allClassrooms = yield Classroom_1.Classroom.findAll();
+            const allVehicles = yield Vehicle_1.Vehicle.findAll();
+            const maintenances = [
+                {
+                    title: 'AC Service - Classroom 101',
+                    description: 'Routine AC maintenance and filter cleaning.',
+                    facilityType: 'Classroom',
+                    facilityId: (_a = allClassrooms[0]) === null || _a === void 0 ? void 0 : _a.id,
+                    dateFrom: '2026-05-10',
+                    dateTo: '2026-05-10',
+                    timeFrom: '09:00:00',
+                    timeTo: '12:00:00'
+                },
+                {
+                    title: 'Engine Tuning - Toyota Hiace',
+                    description: 'Monthly engine checkup and oil change.',
+                    facilityType: 'Transport',
+                    facilityId: (_b = allVehicles[0]) === null || _b === void 0 ? void 0 : _b.id,
+                    dateFrom: '2026-05-12',
+                    dateTo: '2026-05-12',
+                    timeFrom: '08:00:00',
+                    timeTo: '16:00:00'
+                },
+                {
+                    title: 'Projector Repair - Classroom 105',
+                    description: 'Replacing the bulb and cleaning the lens.',
+                    facilityType: 'Classroom',
+                    facilityId: (_c = allClassrooms[4]) === null || _c === void 0 ? void 0 : _c.id,
+                    dateFrom: '2026-05-15',
+                    dateTo: '2026-05-15',
+                    timeFrom: '13:00:00',
+                    timeTo: '15:00:00'
+                },
+                {
+                    title: 'Auditorium Seating Repair',
+                    description: 'Fixing loose chairs in the main auditorium.',
+                    facilityType: 'Auditorium',
+                    dateFrom: '2026-05-20',
+                    dateTo: '2026-05-22',
+                    timeFrom: '09:00:00',
+                    timeTo: '17:00:00'
+                },
+                {
+                    title: 'General Roof Inspection',
+                    description: 'Checking for leaks before the monsoon season.',
+                    facilityType: 'General',
+                    dateFrom: '2026-06-01',
+                    dateTo: '2026-06-02',
+                    timeFrom: '08:00:00',
+                    timeTo: '12:00:00'
+                }
+            ];
+            yield Maintenance_1.default.bulkCreate(maintenances);
+            console.log('5 Maintenance records created.');
+        }
         console.log('Seeding completed successfully.');
         process.exit(0);
     }

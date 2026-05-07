@@ -14,6 +14,7 @@ import ManageClassrooms from "./modules/booking/pages/ManageClassrooms";
 import NewClassroomBooking from "./modules/booking/pages/NewClassroomBooking";
 import EditClassroomBooking from "./modules/booking/pages/EditClassroomBooking";
 import ManageMaintenance from "./modules/booking/pages/ManageMaintenance";
+import ManageUsers from "./modules/booking/pages/ManageUsers";
 
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
       <Route path="/new-classroom-booking" element={<NewClassroomBooking />} />
       <Route path="/edit-classroom-booking/:id" element={<EditClassroomBooking />} />
       <Route path="/manage-maintenance" element={<ManageMaintenance />} />
+      <Route path="/manage-users" element={<ManageUsers />} />
     </Routes>
   );
 }

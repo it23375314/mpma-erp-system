@@ -33,7 +33,7 @@ const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
         yield sequelize.authenticate();
         console.log('MySQL Connected successfully.');
         // Synchronize all models
-        yield sequelize.sync({ alter: true });
+        // await sequelize.sync({ alter: true });
         console.log('MySQL Database synchronized.');
     }
     catch (error) {

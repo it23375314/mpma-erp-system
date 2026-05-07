@@ -11,21 +11,14 @@ import auditoriumBookingRoutes from './routes/auditoriumBookingRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import Maintenance from './models/Maintenance';
-import { Classroom } from './models/Classroom';
-import { Vehicle } from './models/Vehicle';
-import { ClassroomBooking } from './models/ClassroomBooking';
-import { TransportBooking } from './models/TransportBooking';
+import User from './models/User';
 import { setupAssociations } from './models/associations';
-
-// Set up model relationships
-setupAssociations();
-
 
 // Load env vars
 dotenv.config();
 
-// Connect to Database
-connectDB();
+// Set up model relationships
+setupAssociations();
 
 const app = express();
 
@@ -38,6 +31,7 @@ app.get('/', (req, res) => {
   res.send('MPMA ERP API is running...');
 });
 
+// API Routes
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/transport-bookings', transportBookingRoutes);
 app.use('/api/classrooms', classroomRoutes);
@@ -47,13 +41,33 @@ app.use('/api/maintenances', maintenanceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Sync specific models if not handled by root sync
-Maintenance.sync({ alter: true }).then(() => {
-  console.log("Maintenance model synced");
+// Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error'
+  });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Database Connection & Server Start
+const init = async () => {
+  try {
+    await connectDB();
+    
+    // Sync models
+    // await User.sync();
+    // await Maintenance.sync({ alter: true });
+    console.log("Database models checked");
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    process.exit(1);
+  }
+};
+
+init();

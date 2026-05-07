@@ -28,7 +28,44 @@ User.init({
         type: db_1.DataTypes.ENUM('admin', 'user', 'officer'),
         defaultValue: 'user',
     },
+    employeeId: {
+        type: db_1.DataTypes.STRING,
+        allowNull: true,
+    },
+    canBookAuditorium: {
+        type: db_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    canBookClassroom: {
+        type: db_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    canBookTransport: {
+        type: db_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    canManageVehicles: {
+        type: db_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    canManageClassrooms: {
+        type: db_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    canManageMaintenance: {
+        type: db_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    phoneNumber: {
+        type: db_1.DataTypes.STRING,
+        allowNull: true,
+    },
+    isActive: {
+        type: db_1.DataTypes.BOOLEAN,
+        defaultValue: true,
+    },
 }, {
     sequelize: db_1.sequelize,
     tableName: 'users',
 });
+exports.default = User;
