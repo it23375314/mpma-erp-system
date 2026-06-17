@@ -15,7 +15,10 @@ import {
   ChevronRight,
   ClipboardList,
   Users,
-  Key
+  Key,
+  GraduationCap,
+  CreditCard,
+  ClipboardCheck
 } from "lucide-react";
 import logoImg from "../assets/logo.png";
 import ChangePasswordModal from "../components/ChangePasswordModal";
@@ -30,6 +33,9 @@ export default function DashboardLayout({ children }: any) {
   );
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(
     location.pathname.includes("/manage-users")
+  );
+  const [isStudentManagementOpen, setIsStudentManagementOpen] = useState(
+    location.pathname.startsWith("/student-management")
   );
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
@@ -47,13 +53,13 @@ export default function DashboardLayout({ children }: any) {
   ].filter(item => userRole === 'admin' || user[item.permission]);
 
   if (userRole === "admin" || user.canManageVehicles) {
-    bookingSubItems.push({ path: "/manage-vehicles", label: "Manage Vehicles", icon: Car });
+    bookingSubItems.push({ path: "/manage-vehicles", label: "Manage Vehicles", icon: Car, permission: 'canManageVehicles' });
   }
   if (userRole === "admin" || user.canManageClassrooms) {
-    bookingSubItems.push({ path: "/manage-classrooms", label: "Manage Classrooms", icon: School });
+    bookingSubItems.push({ path: "/manage-classrooms", label: "Manage Classrooms", icon: School, permission: 'canManageClassrooms' });
   }
   if (userRole === "admin" || user.canManageMaintenance) {
-    bookingSubItems.push({ path: "/manage-maintenance", label: "Manage Maintenance", icon: Wrench });
+    bookingSubItems.push({ path: "/manage-maintenance", label: "Manage Maintenance", icon: Wrench, permission: 'canManageMaintenance' });
   }
 
   const adminItems: any[] = []; // Now empty as they are moved
@@ -118,6 +124,50 @@ export default function DashboardLayout({ children }: any) {
             <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
               {bookingSubItems.map((item) => {
                 const isActive = location.pathname.startsWith(item.path);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+                      isActive 
+                        ? "bg-brand-600/10 text-brand-400 font-semibold" 
+                        : "hover:bg-slate-800 hover:text-white"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? "text-brand-400" : "text-slate-500 group-hover:text-brand-400"}`} />
+                    <span className="text-xs">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Student Management Parent */}
+        <div className="space-y-1">
+          <button
+            onClick={() => setIsStudentManagementOpen(!isStudentManagementOpen)}
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              isStudentManagementOpen && location.pathname.startsWith("/student-management")
+                ? "bg-slate-800/50 text-white"
+                : "hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <GraduationCap className={`w-5 h-5 ${isStudentManagementOpen ? "text-brand-400" : "text-slate-400 group-hover:text-brand-400"}`} />
+              <span className="font-medium text-sm">Student Management</span>
+            </div>
+            {isStudentManagementOpen ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+          </button>
+
+          {isStudentManagementOpen && (
+            <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
+              {[
+                { path: "/student-management/enrollment", label: "Enrollment", icon: ClipboardCheck },
+                { path: "/student-management/payment", label: "Payment", icon: CreditCard },
+              ].map((item) => {
+                const isActive = location.pathname === item.path;
                 const Icon = item.icon;
                 return (
                   <Link
