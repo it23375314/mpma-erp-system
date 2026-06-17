@@ -13,24 +13,32 @@ import {
   Calendar,
   Clock,
   Users,
+  Filter,
   Download,
-  FileText
+  FileText,
+  Search
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
 import { generateBookingSlip, generateListReport } from "../../../utils/PDFGenerator";
 import CustomModal from "../components/CustomModal";
+import ReportExportModal from "../components/ReportExportModal";
 
 export default function ClassroomBooking() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [maintenances, setMaintenances] = useState<any[]>([]);
+  const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [selectedClassroom, setSelectedClassroom] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
   useEffect(() => {
     loadBookings();
     loadMaintenances();
+    loadClassrooms();
   }, []);
 
   const loadBookings = async () => {
@@ -50,6 +58,24 @@ export default function ClassroomBooking() {
       console.error("Failed to load maintenances", error);
     }
   };
+
+  const loadClassrooms = async () => {
+    try {
+      const data = await fetchApi('/classrooms');
+      const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      setClassrooms(sorted);
+    } catch (error) {
+      console.error("Failed to load classrooms", error);
+    }
+  };
+
+  const filteredBookings = selectedClassroom === "all" 
+    ? bookings 
+    : bookings.filter(b => (b.classroomId || b.classroom?.id) === selectedClassroom);
+
+  const filteredMaintenances = selectedClassroom === "all"
+    ? maintenances
+    : maintenances.filter(m => m.facilityType === 'General' || m.facilityId === selectedClassroom);
 
   const updateStatus = async (id: string, status: string) => {
     try {
@@ -106,17 +132,50 @@ export default function ClassroomBooking() {
     });
   };
 
-  const handleExportList = () => {
-    const columns = ["Requester", "Course", "Dates", "Time Slot", "Status"];
-    const rows = bookings.map(b => [
-      b.requestingOfficerName || b.name,
-      b.courseName,
+  const handleExportList = (filters: { startDate: string; endDate: string; scope: string }) => {
+    const { startDate, endDate, scope } = filters;
+    
+    // Filter bookings by date and scope
+    const reportBookings = bookings.filter(b => {
+      const bDate = new Date(b.dateFrom || b.date);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      
+      const isInRange = (!start || bDate >= start) && (!end || bDate <= end);
+      const isCorrectScope = scope === "all" || (b.classroomId || b.classroom?.id) === scope;
+      
+      return isInRange && isCorrectScope;
+    });
+
+    if (reportBookings.length === 0) {
+      toast.warning("No bookings found for the selected period and scope.");
+      return;
+    }
+
+    const columns = ["Requester", "Course", "Classroom", "Dates", "Time Slot", "Status"];
+    const rows = reportBookings.map(b => [
+      b.requestingOfficerName || b.name || 'N/A',
+      b.courseName || 'N/A',
+      b.classroom?.name || 'N/A',
       `${formatDate(b.dateFrom)} - ${formatDate(b.dateTo)}`,
-      `${b.start} - ${b.end}`,
+      `${b.timeFrom || b.start || 'N/A'} - ${b.timeTo || b.end || 'N/A'}`,
       b.status
     ]);
-    generateListReport("Classroom Bookings Report", columns, rows);
-    toast.info("Generating report...");
+    
+    const dateRange = startDate && endDate 
+      ? `(${startDate} to ${endDate})` 
+      : startDate ? `(From ${startDate})` : endDate ? `(Until ${endDate})` : "(All Time)";
+
+    const selectedClassroomName = scope !== "all" 
+      ? classrooms.find(c => c.id === scope)?.name || "Classroom"
+      : "Classroom";
+
+    const title = scope === "all" 
+      ? `Classroom Bookings ${dateRange}`
+      : `${selectedClassroomName} Report ${dateRange}`;
+
+    generateListReport(title, columns, rows);
+    toast.success(`Exporting ${reportBookings.length} records...`);
   };
 
   const StatusBadge = ({ status }: { status: string }) => {
@@ -152,7 +211,7 @@ export default function ClassroomBooking() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExportList}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl shadow-sm hover:bg-slate-50 transition-all font-semibold"
           >
             <Download className="w-5 h-5 text-slate-400" />
@@ -210,22 +269,57 @@ export default function ClassroomBooking() {
 
       {/* Calendar Card */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
-        <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-brand-500" />
-          Availability Schedule
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-brand-500" />
+            Availability Schedule
+          </h2>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="w-4 h-4 text-slate-400" />
+              </div>
+              <select 
+                value={selectedClassroom}
+                onChange={(e) => setSelectedClassroom(e.target.value)}
+                className="pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none appearance-none cursor-pointer hover:bg-white transition-all shadow-sm"
+              >
+                <option value="all">All Classrooms</option>
+                {classrooms.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-xl overflow-hidden border border-slate-200/60 bg-slate-50/50 p-2">
-          <BookingCalendar bookings={bookings} maintenances={maintenances} />
+          <BookingCalendar bookings={filteredBookings} maintenances={filteredMaintenances} />
         </div>
       </div>
 
       {/* Data Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
-          <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-            Total: {bookings.length}
-          </span>
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
+            <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+              Total: {bookings.length}
+            </span>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="w-4 h-4 text-slate-400" />
+            </div>
+            <input 
+              type="text"
+              placeholder="Search by requester or course..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none shadow-sm"
+            />
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -257,7 +351,15 @@ export default function ClassroomBooking() {
                   </td>
                 </tr>
               ) : (
-                bookings.map((b, index) => (
+                bookings
+                  .filter(b => {
+                    const search = searchQuery.toLowerCase();
+                    return (
+                      (b.name || b.requestingOfficerName || "").toLowerCase().includes(search) ||
+                      (b.courseName || "").toLowerCase().includes(search)
+                    );
+                  })
+                  .map((b, index) => (
                   <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                     
                     <td className="p-4 pl-6 align-middle">
@@ -337,6 +439,14 @@ export default function ClassroomBooking() {
           </table>
         </div>
       </div>
+
+      <ReportExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExportList}
+        type="Classroom"
+        options={classrooms}
+      />
 
       <CustomModal 
         {...modalConfig} 

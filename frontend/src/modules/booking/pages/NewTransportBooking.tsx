@@ -30,7 +30,8 @@ export default function NewTransportBooking() {
   const loadVehicles = async () => {
     try {
       const data = await fetchApi('/vehicles');
-      setVehicles(data);
+      const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      setVehicles(sorted);
     } catch (error) {
       toast.error("Failed to load vehicles");
     }
@@ -48,6 +49,7 @@ export default function NewTransportBooking() {
     pickupLocation: "",
     destination: "",
     passengers: "",
+    estimatedKm: "",
     purpose: ""
   });
 
@@ -89,7 +91,7 @@ export default function NewTransportBooking() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (!form.requesterName || !form.contactNumber || !form.department || !form.designation || !form.departureDate || !form.returnDate || !form.vehicleId || !form.departureTime || !form.pickupLocation || !form.destination || !form.passengers) {
+    if (!form.requesterName || !form.contactNumber || !form.department || !form.designation || !form.departureDate || !form.returnDate || !form.vehicleId || !form.departureTime || !form.pickupLocation || !form.destination || !form.passengers || !form.estimatedKm) {
       toast.error("Please fill all required fields");
       return;
     }
@@ -287,6 +289,14 @@ export default function NewTransportBooking() {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Number of Passengers <span className="text-red-500">*</span></label>
               <div className="relative">
                 <input type="number" name="passengers" value={form.passengers} onChange={handleChange} placeholder="E.g., 5" min="1" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
+              </div>
+            </div>
+
+            {/* Estimated KM */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Estimated KM <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <input type="number" name="estimatedKm" value={form.estimatedKm} onChange={handleChange} placeholder="E.g., 50" min="1" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none" required />
               </div>
             </div>
           </div>

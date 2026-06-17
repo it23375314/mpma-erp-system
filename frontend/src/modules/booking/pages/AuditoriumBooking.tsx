@@ -14,17 +14,21 @@ import {
   Clock,
   Users,
   Download,
-  FileText
+  FileText,
+  Search
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
 import { generateBookingSlip, generateListReport } from "../../../utils/PDFGenerator";
 import CustomModal from "../components/CustomModal";
+import ReportExportModal from "../components/ReportExportModal";
 
 export default function AuditoriumBooking() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [maintenances, setMaintenances] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
@@ -119,17 +123,38 @@ export default function AuditoriumBooking() {
     });
   };
 
-  const handleExportList = () => {
+  const handleExportList = (filters: { startDate: string; endDate: string; scope: string }) => {
+    const { startDate, endDate } = filters;
+    
+    // Filter bookings by date
+    const reportBookings = bookings.filter(b => {
+      const bDate = new Date(b.date);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      return (!start || bDate >= start) && (!end || bDate <= end);
+    });
+
+    if (reportBookings.length === 0) {
+      toast.warning("No bookings found for the selected period.");
+      return;
+    }
+
     const columns = ["Requester", "Date", "Schedule", "Participants", "Status"];
-    const rows = bookings.map(b => [
+    const rows = reportBookings.map(b => [
       b.name,
       formatDate(b.date),
       `${b.start} - ${b.end}`,
       `${b.participants} PAX`,
       b.status
     ]);
-    generateListReport("Auditorium Bookings Report", columns, rows);
-    toast.info("Generating report...");
+
+    const dateRange = startDate && endDate 
+      ? `(${startDate} to ${endDate})` 
+      : startDate ? `(From ${startDate})` : endDate ? `(Until ${endDate})` : "(All Time)";
+
+    const title = `Auditorium Report ${dateRange}`;
+    generateListReport(title, columns, rows);
+    toast.success(`Exporting ${reportBookings.length} records...`);
   };
 
   return (
@@ -152,7 +177,7 @@ export default function AuditoriumBooking() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExportList}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl shadow-sm hover:bg-slate-50 transition-all font-semibold"
           >
             <Download className="w-5 h-5 text-slate-400" />
@@ -221,11 +246,25 @@ export default function AuditoriumBooking() {
 
       {/* Data Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
-          <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-            Total: {bookings.length}
-          </span>
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
+            <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+              Total: {bookings.length}
+            </span>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="w-4 h-4 text-slate-400" />
+            </div>
+            <input 
+              type="text"
+              placeholder="Search by requester..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none shadow-sm"
+            />
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -251,7 +290,9 @@ export default function AuditoriumBooking() {
                   </td>
                 </tr>
               ) : (
-                bookings.map((b, index) => (
+                bookings
+                  .filter(b => (b.name || "").toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((b, index) => (
                   <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                     
                     <td className="p-4 pl-6 align-middle">
@@ -351,6 +392,14 @@ export default function AuditoriumBooking() {
           </table>
         </div>
       </div>
+      <ReportExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExportList}
+        type="Auditorium"
+        options={[]}
+      />
+
       <CustomModal 
         {...modalConfig} 
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })} 

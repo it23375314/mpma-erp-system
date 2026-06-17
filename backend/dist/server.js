@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -15,14 +24,11 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const auditoriumBookingRoutes_1 = __importDefault(require("./routes/auditoriumBookingRoutes"));
 const maintenanceRoutes_1 = __importDefault(require("./routes/maintenanceRoutes"));
 const dashboardRoutes_1 = __importDefault(require("./routes/dashboardRoutes"));
-const Maintenance_1 = __importDefault(require("./models/Maintenance"));
 const associations_1 = require("./models/associations");
-// Set up model relationships
-(0, associations_1.setupAssociations)();
 // Load env vars
 dotenv_1.default.config();
-// Connect to Database
-(0, db_1.default)();
+// Set up model relationships
+(0, associations_1.setupAssociations)();
 const app = (0, express_1.default)();
 // Middleware
 app.use((0, cors_1.default)());
@@ -31,6 +37,7 @@ app.use(express_1.default.json());
 app.get('/', (req, res) => {
     res.send('MPMA ERP API is running...');
 });
+// API Routes
 app.use('/api/vehicles', vehicleRoutes_1.default);
 app.use('/api/transport-bookings', transportBookingRoutes_1.default);
 app.use('/api/classrooms', classroomRoutes_1.default);
@@ -39,11 +46,29 @@ app.use('/api/auditorium-bookings', auditoriumBookingRoutes_1.default);
 app.use('/api/maintenances', maintenanceRoutes_1.default);
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/dashboard', dashboardRoutes_1.default);
-// Sync specific models if not handled by root sync
-Maintenance_1.default.sync({ alter: true }).then(() => {
-    console.log("Maintenance model synced");
+// Error Handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.status || 500).json({
+        message: err.message || 'Internal Server Error'
+    });
 });
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 5001;
+// Database Connection & Server Start
+const init = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield (0, db_1.default)();
+        // Sync models
+        // await User.sync();
+        // await Maintenance.sync({ alter: true });
+        console.log("Database models checked");
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    }
+    catch (error) {
+        console.error('Database connection failed:', error);
+        process.exit(1);
+    }
 });
+init();

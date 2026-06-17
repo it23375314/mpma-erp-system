@@ -150,6 +150,12 @@ export default function BookingCalendar({ bookings, maintenances }: any) {
           event: CustomEvent
         }}
         messages={{ event: "Time Slot" }}
+        formats={{
+          dayHeaderFormat: (date: Date) => moment(date).format('dddd MMM DD, YYYY'),
+          dayRangeHeaderFormat: ({ start, end }: any) => 
+            `${moment(start).format('MMM DD')} - ${moment(end).format('MMM DD, YYYY')}`,
+          monthHeaderFormat: (date: Date) => moment(date).format('MMMM YYYY'),
+        }}
       />
 
       <Tooltip 

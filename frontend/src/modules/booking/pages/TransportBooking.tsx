@@ -15,12 +15,14 @@ import {
   Users, 
   Filter,
   Download,
-  FileText
+  FileText,
+  Search
 } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchApi, formatDate } from "../../../utils/api";
 import { generateBookingSlip, generateListReport } from "../../../utils/PDFGenerator";
 import CustomModal from "../components/CustomModal";
+import ReportExportModal from "../components/ReportExportModal";
 
 export default function TransportBooking() {
   const navigate = useNavigate();
@@ -28,6 +30,8 @@ export default function TransportBooking() {
   const [maintenances, setMaintenances] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<any>({ isOpen: false });
   const userRole = localStorage.getItem("userRole") || "user";
 
@@ -140,19 +144,52 @@ export default function TransportBooking() {
     });
   };
 
-  const handleExportList = () => {
-    const columns = ["Requester", "Division", "Vehicle", "From", "To", "Dates", "Status"];
-    const rows = filteredBookings.map(b => [
+  const handleExportList = (filters: { startDate: string; endDate: string; scope: string }) => {
+    const { startDate, endDate, scope } = filters;
+    
+    // Filter bookings by date and scope
+    const reportBookings = bookings.filter(b => {
+      const bDate = new Date(b.departureDate);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      
+      const isInRange = (!start || bDate >= start) && (!end || bDate <= end);
+      const isCorrectScope = scope === "all" || (b.vehicle?.id || b.vehicleId || b.vehicle) === scope;
+      
+      return isInRange && isCorrectScope;
+    });
+
+    if (reportBookings.length === 0) {
+      toast.warning("No bookings found for the selected period and scope.");
+      return;
+    }
+
+    const columns = ["Requester", "Division", "Vehicle", "From", "To", "Dates", "Est. KM", "Status"];
+    const rows = reportBookings.map(b => [
       b.requesterName || b.name,
       b.department || 'N/A',
       b.vehicle?.name || b.vehicleName || 'Unassigned',
       b.pickupLocation || b.pickup,
       b.destination,
       `${formatDate(b.departureDate)} - ${formatDate(b.returnDate)}`,
+      `${b.estimatedKm || 'N/A'} KM`,
       b.status
     ]);
-    generateListReport("Transport Bookings Report", columns, rows);
-    toast.info("Generating report...");
+
+    const dateRange = startDate && endDate 
+      ? `(${startDate} to ${endDate})` 
+      : startDate ? `(From ${startDate})` : endDate ? `(Until ${endDate})` : "(All Time)";
+
+    const selectedVehicleName = scope !== "all" 
+      ? vehicles.find(v => v.id === scope)?.name || "Vehicle"
+      : "Transport";
+
+    const title = scope === "all" 
+      ? `Transport Bookings ${dateRange}`
+      : `${selectedVehicleName} Report ${dateRange}`;
+
+    generateListReport(title, columns, rows);
+    toast.success(`Exporting ${reportBookings.length} records...`);
   };
 
   return (
@@ -175,7 +212,7 @@ export default function TransportBooking() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleExportList}
+            onClick={() => setIsExportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl shadow-sm hover:bg-slate-50 transition-all font-semibold"
           >
             <Download className="w-5 h-5 text-slate-400" />
@@ -265,11 +302,25 @@ export default function TransportBooking() {
 
       {/* Data Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
-          <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-            Total: {bookings.length}
-          </span>
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-bold text-slate-800">Recent Requests</h2>
+            <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+              Total: {bookings.length}
+            </span>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="w-4 h-4 text-slate-400" />
+            </div>
+            <input 
+              type="text"
+              placeholder="Search by requester, pickup, or destination..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white transition-all outline-none shadow-sm"
+            />
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -279,6 +330,7 @@ export default function TransportBooking() {
                 <th className="p-4 pl-6 whitespace-nowrap">Requester & Trip</th>
                 <th className="p-4 whitespace-nowrap">Vehicle Details</th>
                 <th className="p-4 whitespace-nowrap">Schedule</th>
+                <th className="p-4 whitespace-nowrap">Distance</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
                 <th className="p-4 pr-6 whitespace-nowrap text-right">Actions</th>
               </tr>
@@ -301,7 +353,16 @@ export default function TransportBooking() {
                   </td>
                 </tr>
               ) : (
-                bookings.map((b, index) => (
+                bookings
+                  .filter(b => {
+                    const search = searchQuery.toLowerCase();
+                    return (
+                      (b.name || b.requesterName || "").toLowerCase().includes(search) ||
+                      (b.pickup || b.pickupLocation || "").toLowerCase().includes(search) ||
+                      (b.destination || "").toLowerCase().includes(search)
+                    );
+                  })
+                  .map((b, index) => (
                   <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                     
                     <td className="p-4 pl-6 align-middle">
@@ -330,6 +391,11 @@ export default function TransportBooking() {
                         <Clock className="w-4 h-4 text-slate-400" />
                         Departs at {b.departureTime}
                       </div>
+                    </td>
+
+                    <td className="p-4 align-middle">
+                      <div className="text-sm font-bold text-slate-700">{b.estimatedKm || 'N/A'}</div>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Estimated KM</div>
                     </td>
 
                     <td className="p-4 align-middle text-center">
@@ -385,6 +451,14 @@ export default function TransportBooking() {
           </table>
         </div>
       </div>
+
+      <ReportExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExportList}
+        type="Transport"
+        options={vehicles}
+      />
 
       <CustomModal 
         {...modalConfig} 

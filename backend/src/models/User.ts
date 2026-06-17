@@ -6,6 +6,15 @@ export interface UserAttributes {
   email: string;
   password?: string;
   role: 'admin' | 'user' | 'officer';
+  employeeId?: string;
+  canBookAuditorium: boolean;
+  canBookClassroom: boolean;
+  canBookTransport: boolean;
+  canManageVehicles: boolean;
+  canManageClassrooms: boolean;
+  canManageMaintenance: boolean;
+  phoneNumber?: string;
+  isActive: boolean;
   createdAt?: string;
 }
 
@@ -17,6 +26,15 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public email!: string;
   public password!: string;
   public role!: 'admin' | 'user' | 'officer';
+  public employeeId?: string;
+  public canBookAuditorium!: boolean;
+  public canBookClassroom!: boolean;
+  public canBookTransport!: boolean;
+  public canManageVehicles!: boolean;
+  public canManageClassrooms!: boolean;
+  public canManageMaintenance!: boolean;
+  public phoneNumber?: string;
+  public isActive!: boolean;
   public readonly createdAt!: string;
 }
 
@@ -44,9 +62,47 @@ User.init(
       type: DataTypes.ENUM('admin', 'user', 'officer'),
       defaultValue: 'user',
     },
+    employeeId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    canBookAuditorium: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    canBookClassroom: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    canBookTransport: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    canManageVehicles: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    canManageClassrooms: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    canManageMaintenance: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    phoneNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
   },
   {
     sequelize,
     tableName: 'users',
   }
 );
+
+export default User;

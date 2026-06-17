@@ -7,40 +7,59 @@ import {
   BookOpen, 
   Bus,
   Bell,
-  Search,
   UserCircle,
   Car,
   School,
   Wrench,
   ChevronDown,
   ChevronRight,
-  ClipboardList
+  ClipboardList,
+  Users,
+  Key,
+  GraduationCap,
+  CreditCard,
+  ClipboardCheck
 } from "lucide-react";
 import logoImg from "../assets/logo.png";
+import ChangePasswordModal from "../components/ChangePasswordModal";
 
 export default function DashboardLayout({ children }: any) {
   const navigate = useNavigate();
   const location = useLocation();
-  const userRole = localStorage.getItem("userRole") || "user";
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const userRole = user.role || "user";
   const [isBookingOpen, setIsBookingOpen] = useState(
     location.pathname.includes("-booking") || location.pathname.includes("/manage-")
   );
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(
+    location.pathname.includes("/manage-users")
+  );
+  const [isStudentManagementOpen, setIsStudentManagementOpen] = useState(
+    location.pathname.startsWith("/student-management")
+  );
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("userRole");
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
     navigate("/");
   };
 
   const bookingSubItems = [
-    { path: "/auditorium-booking", label: "Auditorium Booking", icon: MonitorPlay },
-    { path: "/classroom-booking", label: "Classroom Booking", icon: BookOpen },
-    { path: "/transport-booking", label: "Transport Booking", icon: Bus },
-  ];
+    { path: "/auditorium-booking", label: "Auditorium Booking", icon: MonitorPlay, permission: 'canBookAuditorium' },
+    { path: "/classroom-booking", label: "Classroom Booking", icon: BookOpen, permission: 'canBookClassroom' },
+    { path: "/transport-booking", label: "Transport Booking", icon: Bus, permission: 'canBookTransport' },
+  ].filter(item => userRole === 'admin' || user[item.permission]);
 
-  if (userRole === "admin") {
-    bookingSubItems.push({ path: "/manage-vehicles", label: "Manage Vehicles", icon: Car });
-    bookingSubItems.push({ path: "/manage-classrooms", label: "Manage Classrooms", icon: School });
-    bookingSubItems.push({ path: "/manage-maintenance", label: "Manage Maintenance", icon: Wrench });
+  if (userRole === "admin" || user.canManageVehicles) {
+    bookingSubItems.push({ path: "/manage-vehicles", label: "Manage Vehicles", icon: Car, permission: 'canManageVehicles' });
+  }
+  if (userRole === "admin" || user.canManageClassrooms) {
+    bookingSubItems.push({ path: "/manage-classrooms", label: "Manage Classrooms", icon: School, permission: 'canManageClassrooms' });
+  }
+  if (userRole === "admin" || user.canManageMaintenance) {
+    bookingSubItems.push({ path: "/manage-maintenance", label: "Manage Maintenance", icon: Wrench, permission: 'canManageMaintenance' });
   }
 
   const adminItems: any[] = []; // Now empty as they are moved
@@ -124,6 +143,86 @@ export default function DashboardLayout({ children }: any) {
             </div>
           )}
         </div>
+
+        {/* Student Management Parent */}
+        <div className="space-y-1">
+          <button
+            onClick={() => setIsStudentManagementOpen(!isStudentManagementOpen)}
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              isStudentManagementOpen && location.pathname.startsWith("/student-management")
+                ? "bg-slate-800/50 text-white"
+                : "hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <GraduationCap className={`w-5 h-5 ${isStudentManagementOpen ? "text-brand-400" : "text-slate-400 group-hover:text-brand-400"}`} />
+              <span className="font-medium text-sm">Student Management</span>
+            </div>
+            {isStudentManagementOpen ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+          </button>
+
+          {isStudentManagementOpen && (
+            <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
+              {[
+                { path: "/student-management/enrollment", label: "Enrollment", icon: ClipboardCheck },
+                { path: "/student-management/payment", label: "Payment", icon: CreditCard },
+              ].map((item) => {
+                const isActive = location.pathname === item.path;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+                      isActive 
+                        ? "bg-brand-600/10 text-brand-400 font-semibold" 
+                        : "hover:bg-slate-800 hover:text-white"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? "text-brand-400" : "text-slate-500 group-hover:text-brand-400"}`} />
+                    <span className="text-xs">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* User Management Section (Admin Only) */}
+        {userRole === "admin" && (
+          <div className="space-y-1">
+            <button
+              onClick={() => setIsUserManagementOpen(!isUserManagementOpen)}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                isUserManagementOpen && location.pathname.includes("/manage-users")
+                  ? "bg-slate-800/50 text-white"
+                  : "hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Users className={`w-5 h-5 ${isUserManagementOpen ? "text-brand-400" : "text-slate-400 group-hover:text-brand-400"}`} />
+                <span className="font-medium text-sm">User Management</span>
+              </div>
+              {isUserManagementOpen ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+            </button>
+
+            {isUserManagementOpen && (
+              <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
+                <Link
+                  to="/manage-users"
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+                    location.pathname === "/manage-users"
+                      ? "bg-brand-600/10 text-brand-400 font-semibold"
+                      : "hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  <Users className={`w-4 h-4 ${location.pathname === "/manage-users" ? "text-brand-400" : "text-slate-500 group-hover:text-brand-400"}`} />
+                  <span className="text-xs">Manage Users</span>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
         {/* User Card & Logout */}
@@ -136,6 +235,13 @@ export default function DashboardLayout({ children }: any) {
             </div>
           </div>
           <button
+            onClick={() => setIsChangePasswordOpen(true)}
+            className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-4 rounded-xl transition-all duration-200 border border-transparent mb-2 text-sm font-medium"
+          >
+            <Key className="w-4 h-4" />
+            Change Password
+          </button>
+          <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-500/10 hover:text-red-400 text-slate-300 py-2.5 px-4 rounded-xl transition-all duration-200 border border-transparent hover:border-red-500/20 text-sm font-medium"
           >
@@ -145,20 +251,17 @@ export default function DashboardLayout({ children }: any) {
         </div>
       </aside>
 
+      <ChangePasswordModal 
+        isOpen={isChangePasswordOpen} 
+        onClose={() => setIsChangePasswordOpen(false)} 
+      />
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         
         {/* Top Header */}
         <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10 sticky top-0">
           <div className="flex items-center gap-4 flex-1">
-            <div className="relative w-full max-w-md hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search across the ERP..." 
-                className="w-full pl-10 pr-4 py-2 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
-              />
-            </div>
           </div>
           
           <div className="flex items-center gap-5">

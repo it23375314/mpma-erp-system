@@ -50,6 +50,7 @@ export const generateBookingSlip = (type: 'Transport' | 'Classroom' | 'Auditoriu
     infoRows.push(['Route', `${data.pickupLocation || data.pickup} to ${data.destination}`]);
     infoRows.push(['Departure', `${formatDate(data.departureDate)} at ${data.departureTime}`]);
     infoRows.push(['Return', formatDate(data.returnDate)]);
+    infoRows.push(['Estimated KM', `${data.estimatedKm || 'N/A'} KM`]);
     infoRows.push(['Purpose', data.purpose || data.description || 'Trip']);
   } else if (type === 'Classroom') {
     infoRows.push(['Requester', data.requestingOfficerName || data.name]);
@@ -126,10 +127,10 @@ export const generateListReport = (title: string, columns: string[], rows: any[]
     head: [columns],
     body: rows,
     theme: 'striped',
-    headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold' },
+    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [248, 250, 252] },
-    styles: { fontSize: 9, cellPadding: 3 }
+    styles: { fontSize: 9, cellPadding: 3, font: 'helvetica' }
   });
 
-  doc.save(`${title.toLowerCase().replace(/\s+/g, '_')}_${new Date().toLocaleDateString()}.pdf`);
+  doc.save(`${title.toLowerCase().replace(/\s+/g, '_')}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
 };
