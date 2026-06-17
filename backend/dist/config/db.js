@@ -18,16 +18,12 @@ Object.defineProperty(exports, "DataTypes", { enumerable: true, get: function ()
 Object.defineProperty(exports, "Model", { enumerable: true, get: function () { return sequelize_1.Model; } });
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-const sequelize = new sequelize_1.Sequelize("myproject", // database
-"root", // user
-"", // password (EMPTY)
-{
-    host: "localhost",
-    dialect: "mysql",
+const sequelize = new sequelize_1.Sequelize(process.env.DB_NAME || 'mpma_erp2', process.env.DB_USER || 'root', process.env.DB_PASSWORD || 'root123', {
+    host: process.env.DB_HOST || 'localhost',
+    dialect: 'mysql',
     logging: false,
 });
 exports.sequelize = sequelize;
-console.log("Connecting with password:", "");
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield sequelize.authenticate();
