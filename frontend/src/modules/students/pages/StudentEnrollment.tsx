@@ -1,15 +1,15 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../../layouts/DashboardLayout";
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  MapPin, 
-  GraduationCap, 
-  Check, 
-  ChevronRight, 
+import {
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  MapPin,
+  GraduationCap,
+  Check,
+  ChevronRight,
   ArrowLeft,
   Save,
   Upload,
@@ -36,7 +36,7 @@ const StudentEnrollment = () => {
   const [formData, setFormData] = useState({
     // Step 1: Category
     studentCategory: "", // "SLPA Employee", "Sri Lankan Student", "Non-Sri Lankan Student"
-    
+
     // Step 2: Personal
     firstName: "",
     lastName: "",
@@ -48,7 +48,7 @@ const StudentEnrollment = () => {
     countryOfOrigin: "Sri Lanka",
     dob: "",
     gender: "Male",
-    
+
     // Step 3: Contact
     email: "",
     phone: "",
@@ -69,7 +69,7 @@ const StudentEnrollment = () => {
     // Step 6: Documents
     documents: [] as any[]
   });
-  
+
   const [employeeSearchId, setEmployeeSearchId] = useState("");
   const [isSearchingEmployee, setIsSearchingEmployee] = useState(false);
 
@@ -98,7 +98,7 @@ const StudentEnrollment = () => {
 
   const validateStep = (step: number) => {
     const newErrors: Record<string, string> = {};
-    
+
     if (step === 1) {
       if (!formData.studentCategory) {
         toast.error("Please select a student category");
@@ -237,7 +237,7 @@ const StudentEnrollment = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => navigate(-1)}
               className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
             >
@@ -248,27 +248,25 @@ const StudentEnrollment = () => {
               <p className="text-slate-500 font-medium">Enterprise Academic Enrollment Portal</p>
             </div>
           </div>
-          
+
           {/* Stepper */}
           <div className="hidden lg:flex items-center gap-2 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
             {steps.map((step, idx) => (
               <React.Fragment key={step.id}>
-                <div 
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                    currentStep === step.id 
-                      ? "bg-brand-50 text-brand-700 shadow-sm border border-brand-100" 
-                      : currentStep > step.id 
-                        ? "text-emerald-600" 
+                <div
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${currentStep === step.id
+                      ? "bg-brand-50 text-brand-700 shadow-sm border border-brand-100"
+                      : currentStep > step.id
+                        ? "text-emerald-600"
                         : "text-slate-400"
-                  }`}
+                    }`}
                 >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
-                    currentStep === step.id 
-                      ? "bg-brand-600 text-white" 
-                      : currentStep > step.id 
-                        ? "bg-emerald-100 text-emerald-600" 
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${currentStep === step.id
+                      ? "bg-brand-600 text-white"
+                      : currentStep > step.id
+                        ? "bg-emerald-100 text-emerald-600"
                         : "bg-slate-100"
-                  }`}>
+                    }`}>
                     {currentStep > step.id ? <Check className="w-5 h-5" /> : step.id}
                   </div>
                   <span className="text-sm font-bold whitespace-nowrap">{step.title}</span>
@@ -283,7 +281,7 @@ const StudentEnrollment = () => {
         <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
           <form onSubmit={handleSubmit}>
             <div className="p-10">
-              
+
               {/* Step 1: Student Category */}
               {currentStep === 1 && (
                 <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -303,23 +301,21 @@ const StudentEnrollment = () => {
                       { id: "Sri Lankan Student", title: "Sri Lankan Student", desc: "Local students with a valid NIC", icon: User },
                       { id: "Non-Sri Lankan Student", title: "Non-Sri Lankan Student", desc: "International students with a valid Passport", icon: Globe }
                     ].map((cat) => (
-                      <div 
+                      <div
                         key={cat.id}
                         onClick={() => setFormData(prev => ({ ...prev, studentCategory: cat.id }))}
-                        className={`group relative overflow-hidden flex flex-col p-8 rounded-[2rem] border-2 transition-all cursor-pointer hover:shadow-2xl hover:shadow-slate-200/50 ${
-                          formData.studentCategory === cat.id 
-                            ? 'bg-brand-50 border-brand-500 shadow-xl shadow-brand-500/10' 
+                        className={`group relative overflow-hidden flex flex-col p-8 rounded-[2rem] border-2 transition-all cursor-pointer hover:shadow-2xl hover:shadow-slate-200/50 ${formData.studentCategory === cat.id
+                            ? 'bg-brand-50 border-brand-500 shadow-xl shadow-brand-500/10'
                             : 'bg-white border-slate-100 hover:border-slate-200'
-                        }`}
+                          }`}
                       >
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-all ${
-                          formData.studentCategory === cat.id ? 'bg-brand-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-brand-50 group-hover:text-brand-500'
-                        }`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-all ${formData.studentCategory === cat.id ? 'bg-brand-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-brand-50 group-hover:text-brand-500'
+                          }`}>
                           <cat.icon className="w-7 h-7" />
                         </div>
                         <h3 className={`text-lg font-bold mb-2 ${formData.studentCategory === cat.id ? 'text-brand-900' : 'text-slate-800'}`}>{cat.title}</h3>
                         <p className={`text-sm font-medium leading-relaxed ${formData.studentCategory === cat.id ? 'text-brand-600' : 'text-slate-500'}`}>{cat.desc}</p>
-                        
+
                         {formData.studentCategory === cat.id && (
                           <div className="absolute top-6 right-6 w-6 h-6 bg-brand-600 rounded-full flex items-center justify-center">
                             <Check className="w-4 h-4 text-white" />
@@ -348,31 +344,31 @@ const StudentEnrollment = () => {
 
                   {formData.studentCategory === "SLPA Employee" ? (
                     <div className="space-y-8">
-                       <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">
-                          <label className="text-sm font-bold text-slate-700 ml-1">Search Employee By Service Number or NIC</label>
-                          <div className="mt-3 flex gap-4">
-                            <div className="relative flex-1">
-                              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                              <input 
-                                value={employeeSearchId}
-                                onChange={(e) => setEmployeeSearchId(e.target.value)}
-                                className="w-full pl-12 pr-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
-                                placeholder="Enter EPF/Service No or NIC" 
-                              />
-                            </div>
-                            <button 
-                              type="button"
-                              onClick={handleEmployeeSearch}
-                              disabled={isSearchingEmployee}
-                              className="px-8 bg-brand-600 text-white font-bold rounded-2xl flex items-center gap-2 hover:bg-brand-700 transition-all disabled:opacity-50"
-                            >
-                              {isSearchingEmployee ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                              Search
-                            </button>
+                      <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">
+                        <label className="text-sm font-bold text-slate-700 ml-1">Search Employee By Service Number or NIC</label>
+                        <div className="mt-3 flex gap-4">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                              value={employeeSearchId}
+                              onChange={(e) => setEmployeeSearchId(e.target.value)}
+                              className="w-full pl-12 pr-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
+                              placeholder="Enter EPF/Service No or NIC"
+                            />
                           </div>
-                       </div>
+                          <button
+                            type="button"
+                            onClick={handleEmployeeSearch}
+                            disabled={isSearchingEmployee}
+                            className="px-8 bg-brand-600 text-white font-bold rounded-2xl flex items-center gap-2 hover:bg-brand-700 transition-all disabled:opacity-50"
+                          >
+                            {isSearchingEmployee ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                            Search
+                          </button>
+                        </div>
+                      </div>
 
-                       {formData.fullName && (
+                      {formData.fullName && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
                           <div className="md:col-span-2 p-6 bg-emerald-50 rounded-[1.5rem] border border-emerald-100 flex items-center gap-4">
                             <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
@@ -385,130 +381,130 @@ const StudentEnrollment = () => {
                           </div>
 
                           <div className="space-y-2">
-                             <label className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
-                             <input value={formData.fullName} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                            <label className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
+                            <input value={formData.fullName} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
                           </div>
                           <div className="space-y-2">
-                             <label className="text-sm font-bold text-slate-700 ml-1">Service Number</label>
-                             <input value={formData.epfNumber} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                            <label className="text-sm font-bold text-slate-700 ml-1">Service Number</label>
+                            <input value={formData.epfNumber} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
                           </div>
                           <div className="space-y-2">
-                             <label className="text-sm font-bold text-slate-700 ml-1">Department</label>
-                             <input value={formData.department} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                            <label className="text-sm font-bold text-slate-700 ml-1">Department</label>
+                            <input value={formData.department} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
                           </div>
                           <div className="space-y-2">
-                             <label className="text-sm font-bold text-slate-700 ml-1">Date of Birth</label>
-                             <input value={formData.dob} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                            <label className="text-sm font-bold text-slate-700 ml-1">Date of Birth</label>
+                            <input value={formData.dob} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
                           </div>
                         </div>
-                       )}
+                      )}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="md:col-span-2 space-y-2">
-                         <label className="text-sm font-bold text-slate-700 ml-1">Full Name (As per identification) <span className="text-red-500">*</span></label>
-                         <div className="relative">
-                           <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                           <input 
-                              name="fullName"
-                              value={formData.fullName}
-                              onChange={handleInputChange}
-                              className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all ${errors.fullName ? 'border-red-400 bg-red-50/30' : ''}`}
-                              placeholder="Enter full name" 
-                            />
-                         </div>
-                         {errors.fullName && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.fullName}</p>}
+                        <label className="text-sm font-bold text-slate-700 ml-1">Full Name (As per identification) <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            name="fullName"
+                            value={formData.fullName}
+                            onChange={handleInputChange}
+                            className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all ${errors.fullName ? 'border-red-400 bg-red-50/30' : ''}`}
+                            placeholder="Enter full name"
+                          />
+                        </div>
+                        {errors.fullName && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.fullName}</p>}
                       </div>
 
                       {formData.studentCategory === "Sri Lankan Student" ? (
                         <div className="space-y-2">
-                           <label className="text-sm font-bold text-slate-700 ml-1">NIC Number <span className="text-red-500">*</span></label>
-                           <div className="relative">
-                             <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                             <input 
-                                name="idNumber"
-                                value={formData.idNumber}
-                                onChange={handleInputChange}
-                                className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all ${errors.idNumber ? 'border-red-400' : ''}`}
-                                placeholder="eg: 199512345678" 
-                              />
-                           </div>
-                           {errors.idNumber && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.idNumber}</p>}
+                          <label className="text-sm font-bold text-slate-700 ml-1">NIC Number <span className="text-red-500">*</span></label>
+                          <div className="relative">
+                            <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                              name="idNumber"
+                              value={formData.idNumber}
+                              onChange={handleInputChange}
+                              className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all ${errors.idNumber ? 'border-red-400' : ''}`}
+                              placeholder="eg: 199512345678"
+                            />
+                          </div>
+                          {errors.idNumber && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.idNumber}</p>}
                         </div>
                       ) : (
                         <div className="space-y-2">
-                           <label className="text-sm font-bold text-slate-700 ml-1">Passport Number <span className="text-red-500">*</span></label>
-                           <div className="relative">
-                             <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                             <input 
-                                name="passportNumber"
-                                value={formData.passportNumber}
-                                onChange={handleInputChange}
-                                className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all ${errors.passportNumber ? 'border-red-400' : ''}`}
-                                placeholder="Enter passport number" 
-                              />
-                           </div>
-                           {errors.passportNumber && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.passportNumber}</p>}
+                          <label className="text-sm font-bold text-slate-700 ml-1">Passport Number <span className="text-red-500">*</span></label>
+                          <div className="relative">
+                            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                              name="passportNumber"
+                              value={formData.passportNumber}
+                              onChange={handleInputChange}
+                              className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all ${errors.passportNumber ? 'border-red-400' : ''}`}
+                              placeholder="Enter passport number"
+                            />
+                          </div>
+                          {errors.passportNumber && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.passportNumber}</p>}
                         </div>
                       )}
 
                       <div className="space-y-2">
-                         <label className="text-sm font-bold text-slate-700 ml-1">Nationality</label>
-                         <div className="relative">
-                           <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                           <input 
-                              name="nationality"
-                              value={formData.nationality}
-                              onChange={handleInputChange}
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
-                            />
-                         </div>
+                        <label className="text-sm font-bold text-slate-700 ml-1">Nationality</label>
+                        <div className="relative">
+                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            name="nationality"
+                            value={formData.nationality}
+                            onChange={handleInputChange}
+                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
+                          />
+                        </div>
                       </div>
 
                       {formData.studentCategory === "Non-Sri Lankan Student" && (
                         <div className="space-y-2">
-                           <label className="text-sm font-bold text-slate-700 ml-1">Country of Residence</label>
-                           <div className="relative">
-                             <Flag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                             <input 
-                                name="countryOfOrigin"
-                                value={formData.countryOfOrigin}
-                                onChange={handleInputChange}
-                                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
-                              />
-                           </div>
+                          <label className="text-sm font-bold text-slate-700 ml-1">Country of Residence</label>
+                          <div className="relative">
+                            <Flag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                              name="countryOfOrigin"
+                              value={formData.countryOfOrigin}
+                              onChange={handleInputChange}
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
+                            />
+                          </div>
                         </div>
                       )}
 
                       <div className="space-y-2">
-                         <label className="text-sm font-bold text-slate-700 ml-1">Date of Birth <span className="text-red-500">*</span></label>
-                         <div className="relative">
-                           <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                           <input 
-                              type="date"
-                              name="dob"
-                              value={formData.dob}
-                              onChange={handleInputChange}
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
-                            />
-                         </div>
-                         {errors.dob && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.dob}</p>}
+                        <label className="text-sm font-bold text-slate-700 ml-1">Date of Birth <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            type="date"
+                            name="dob"
+                            value={formData.dob}
+                            onChange={handleInputChange}
+                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
+                          />
+                        </div>
+                        {errors.dob && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.dob}</p>}
                       </div>
-                      
+
                       <div className="space-y-2">
-                         <label className="text-sm font-bold text-slate-700 ml-1">Gender</label>
-                         <div className="grid grid-cols-2 gap-4">
-                           {["Male", "Female"].map(g => (
-                              <button
-                                key={g}
-                                type="button"
-                                onClick={() => setFormData(prev => ({ ...prev, gender: g }))}
-                                className={`py-4 rounded-2xl font-bold transition-all ${formData.gender === g ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'bg-slate-50 text-slate-500 border-2 border-transparent hover:border-slate-200'}`}
-                              >
-                                {g}
-                              </button>
-                           ))}
-                         </div>
+                        <label className="text-sm font-bold text-slate-700 ml-1">Gender</label>
+                        <div className="grid grid-cols-2 gap-4">
+                          {["Male", "Female"].map(g => (
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, gender: g }))}
+                              className={`py-4 rounded-2xl font-bold transition-all ${formData.gender === g ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'bg-slate-50 text-slate-500 border-2 border-transparent hover:border-slate-200'}`}
+                            >
+                              {g}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -518,7 +514,7 @@ const StudentEnrollment = () => {
               {/* Step 3: Contact Information */}
               {currentStep === 3 && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                   <div className="flex items-center gap-4 py-4 border-b border-slate-50">
+                  <div className="flex items-center gap-4 py-4 border-b border-slate-50">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                       <Mail className="w-6 h-6" />
                     </div>
@@ -530,50 +526,50 @@ const StudentEnrollment = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                       <label className="text-sm font-bold text-slate-700 ml-1">Email <span className="text-red-500">*</span></label>
-                       <div className="relative">
-                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                         <input 
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
-                            placeholder="example@email.com" 
-                          />
-                       </div>
-                       {errors.email && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.email}</p>}
+                      <label className="text-sm font-bold text-slate-700 ml-1">Email <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
+                          placeholder="example@email.com"
+                        />
+                      </div>
+                      {errors.email && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.email}</p>}
                     </div>
 
                     <div className="space-y-2">
-                       <label className="text-sm font-bold text-slate-700 ml-1">Phone Number <span className="text-red-500">*</span></label>
-                       <div className="relative">
-                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                         <input 
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleInputChange}
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
-                            placeholder="e.g. 077 123 4567" 
-                          />
-                       </div>
-                       {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.phone}</p>}
+                      <label className="text-sm font-bold text-slate-700 ml-1">Phone Number <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
+                          placeholder="e.g. 077 123 4567"
+                        />
+                      </div>
+                      {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.phone}</p>}
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
-                       <label className="text-sm font-bold text-slate-700 ml-1">Address <span className="text-red-500">*</span></label>
-                       <div className="relative">
-                         <MapPin className="absolute left-4 top-6 w-5 h-5 text-slate-400" />
-                         <textarea 
-                            name="address"
-                            value={formData.address}
-                            onChange={handleInputChange}
-                            rows={3}
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all resize-none"
-                            placeholder="Residential address" 
-                          />
-                       </div>
-                       {errors.address && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.address}</p>}
+                      <label className="text-sm font-bold text-slate-700 ml-1">Address <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <MapPin className="absolute left-4 top-6 w-5 h-5 text-slate-400" />
+                        <textarea
+                          name="address"
+                          value={formData.address}
+                          onChange={handleInputChange}
+                          rows={3}
+                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all resize-none"
+                          placeholder="Residential address"
+                        />
+                      </div>
+                      {errors.address && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.address}</p>}
                     </div>
                   </div>
                 </div>
@@ -594,36 +590,36 @@ const StudentEnrollment = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                       <label className="text-sm font-bold text-slate-700 ml-1">Program <span className="text-red-500">*</span></label>
-                       <div className="relative">
-                         <Info className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                         <select 
-                            name="course"
-                            value={formData.course}
-                            onChange={handleInputChange}
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all appearance-none cursor-pointer"
-                          >
-                            <option value="">Choose a course</option>
-                            <option value="ICT">Computer Science</option>
-                            <option value="Business">Business Admin</option>
-                            <option value="Eng">Engineering</option>
-                          </select>
-                       </div>
-                       {errors.course && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.course}</p>}
+                      <label className="text-sm font-bold text-slate-700 ml-1">Program <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Info className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                        <select
+                          name="course"
+                          value={formData.course}
+                          onChange={handleInputChange}
+                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="">Choose a course</option>
+                          <option value="ICT">Computer Science</option>
+                          <option value="Business">Business Admin</option>
+                          <option value="Eng">Engineering</option>
+                        </select>
+                      </div>
+                      {errors.course && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.course}</p>}
                     </div>
 
                     <div className="space-y-2">
-                       <label className="text-sm font-bold text-slate-700 ml-1">Batch</label>
-                       <div className="relative">
-                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                         <input 
-                            name="batch"
-                            value={formData.batch}
-                            onChange={handleInputChange}
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
-                            placeholder="e.g. 2024 Fall" 
-                          />
-                       </div>
+                      <label className="text-sm font-bold text-slate-700 ml-1">Batch</label>
+                      <div className="relative">
+                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                          name="batch"
+                          value={formData.batch}
+                          onChange={handleInputChange}
+                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
+                          placeholder="e.g. 2024 Fall"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -645,47 +641,47 @@ const StudentEnrollment = () => {
                   <div className="bg-slate-50/50 rounded-[2rem] p-10 border border-slate-100">
                     {formData.studentCategory === "SLPA Employee" ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
-                         <div className="space-y-2">
-                           <label className="text-sm font-bold text-slate-700 ml-1">SLPA EPF Number</label>
-                           <input 
-                              name="epfNumber"
-                              value={formData.epfNumber}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
-                            />
-                         </div>
-                         <div className="space-y-2">
-                           <label className="text-sm font-bold text-slate-700 ml-1">SLPA Department</label>
-                           <input 
-                              name="department"
-                              value={formData.department}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
-                            />
-                         </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700 ml-1">SLPA EPF Number</label>
+                          <input
+                            name="epfNumber"
+                            value={formData.epfNumber}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700 ml-1">SLPA Department</label>
+                          <input
+                            name="department"
+                            value={formData.department}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
+                          />
+                        </div>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
-                         <div className="space-y-2">
-                           <label className="text-sm font-bold text-slate-700 ml-1">Current Employment / School</label>
-                           <input 
-                              name="companyName"
-                              value={formData.companyName}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
-                              placeholder="Name of institution" 
-                            />
-                         </div>
-                         <div className="space-y-2">
-                           <label className="text-sm font-bold text-slate-700 ml-1">Designation</label>
-                           <input 
-                              name="outsidePosition"
-                              value={formData.outsidePosition}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
-                              placeholder="e.g. Student, Manager"
-                            />
-                         </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700 ml-1">Current Employment / School</label>
+                          <input
+                            name="companyName"
+                            value={formData.companyName}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
+                            placeholder="Name of institution"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700 ml-1">Designation</label>
+                          <input
+                            name="outsidePosition"
+                            value={formData.outsidePosition}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
+                            placeholder="e.g. Student, Manager"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -695,7 +691,7 @@ const StudentEnrollment = () => {
               {/* Step 6: Documents */}
               {currentStep === 6 && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                   <div className="flex items-center gap-4 py-4 border-b border-slate-50">
+                  <div className="flex items-center gap-4 py-4 border-b border-slate-50">
                     <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                       <Upload className="w-6 h-6" />
                     </div>
@@ -705,14 +701,14 @@ const StudentEnrollment = () => {
                     </div>
                   </div>
 
-                  <div 
+                  <div
                     onClick={() => fileInputRef.current?.click()}
                     className="border-4 border-dashed border-slate-100 bg-slate-50 rounded-[2.5rem] p-16 text-center hover:border-brand-400 cursor-pointer transition-all"
                   >
-                    <input 
-                      type="file" 
-                      multiple 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
                       ref={fileInputRef}
                       onChange={handleFileChange}
                     />
@@ -737,7 +733,7 @@ const StudentEnrollment = () => {
                               <p className="text-[10px] text-slate-400">{doc.size}</p>
                             </div>
                           </div>
-                          <button 
+                          <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
                             className="p-2 text-slate-300 hover:text-red-500 transition-all font-bold"

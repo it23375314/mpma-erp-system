@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import Student from '../models/Student';
+import StudentPayment from '../models/StudentPayment';
+import { generatePaymentReference, formatAmount } from '../utils/paymentHelpers';
 
 export const enrollStudent = async (req: Request, res: Response) => {
   try {
@@ -34,9 +36,31 @@ export const enrollStudent = async (req: Request, res: Response) => {
       status: 'Enrolled' // Default to Enrolled for now
     });
 
+    // ============================================================
+    // AUTOMATIC PAYMENT RECORD CREATION
+    // After student enrollment is completed, create a pending payment.
+    // ============================================================
+    const registration_fee = 2500; // Default or take from req.body
+    const course_fee = 25000;     // Default or take from req.body
+    const full_amount_payable = formatAmount(registration_fee + course_fee);
+    const payment_reference = generatePaymentReference(student.id);
+
+    await StudentPayment.create({
+      student_id: student.id,
+      course_batch_id: null, // Can be refined if batch id is available
+      registration_fee,
+      course_fee,
+      full_amount_payable,
+      payment_reference,
+      payment_status: 'PENDING',
+      payment_completed: false,
+      payment_method: 'GOVPAY',
+    });
+
     res.status(201).json({
-      message: 'Student enrolled successfully',
-      student
+      message: 'Student enrolled and pending payment created successfully',
+      student,
+      payment_reference
     });
   } catch (error: any) {
     console.error('Enrollment error:', error);

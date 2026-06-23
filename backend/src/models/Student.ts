@@ -12,10 +12,10 @@ export interface StudentAttributes {
   course: string;
   batch: string;
   enrollmentDate: string;
-  status: 'Pending' | 'Enrolled' | 'Graduated' | 'Dropout';
+  status: 'Pending' | 'Enrolled' | 'Registered' | 'Graduated' | 'Dropout';
 }
 
-interface StudentCreationAttributes extends Optional<StudentAttributes, 'id' | 'enrollmentDate' | 'status'> {}
+interface StudentCreationAttributes extends Optional<StudentAttributes, 'id' | 'enrollmentDate' | 'status'> { }
 
 export class Student extends Model<StudentAttributes, StudentCreationAttributes> implements StudentAttributes {
   public id!: string;
@@ -29,7 +29,7 @@ export class Student extends Model<StudentAttributes, StudentCreationAttributes>
   public course!: string;
   public batch!: string;
   public enrollmentDate!: string;
-  public status!: 'Pending' | 'Enrolled' | 'Graduated' | 'Dropout';
+  public status!: 'Pending' | 'Enrolled' | 'Registered' | 'Graduated' | 'Dropout';
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -84,7 +84,7 @@ Student.init(
       defaultValue: DataTypes.NOW,
     },
     status: {
-      type: DataTypes.ENUM('Pending', 'Enrolled', 'Graduated', 'Dropout'),
+      type: DataTypes.ENUM('Pending', 'Enrolled', 'Registered', 'Graduated', 'Dropout'),
       defaultValue: 'Pending',
     },
   },
