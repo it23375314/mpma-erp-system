@@ -11,11 +11,14 @@ export interface StudentAttributes {
   address: string;
   course: string;
   batch: string;
+  studentCategory?: string | null;
+  nic?: string | null;
+  passport?: string | null;
   enrollmentDate: string;
   status: 'Pending' | 'Enrolled' | 'Registered' | 'Graduated' | 'Dropout';
 }
 
-interface StudentCreationAttributes extends Optional<StudentAttributes, 'id' | 'enrollmentDate' | 'status'> { }
+interface StudentCreationAttributes extends Optional<StudentAttributes, 'id' | 'enrollmentDate' | 'status' | 'studentCategory' | 'nic' | 'passport'> { }
 
 export class Student extends Model<StudentAttributes, StudentCreationAttributes> implements StudentAttributes {
   public id!: string;
@@ -28,6 +31,9 @@ export class Student extends Model<StudentAttributes, StudentCreationAttributes>
   public address!: string;
   public course!: string;
   public batch!: string;
+  public studentCategory!: string | null;
+  public nic!: string | null;
+  public passport!: string | null;
   public enrollmentDate!: string;
   public status!: 'Pending' | 'Enrolled' | 'Registered' | 'Graduated' | 'Dropout';
 
@@ -78,6 +84,18 @@ Student.init(
     batch: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    studentCategory: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    nic: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    passport: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     enrollmentDate: {
       type: DataTypes.DATEONLY,

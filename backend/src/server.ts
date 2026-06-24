@@ -1,6 +1,6 @@
+import './config/env';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import connectDB from './config/db';
 import vehicleRoutes from './routes/vehicleRoutes';
 import transportBookingRoutes from './routes/transportBookingRoutes';
@@ -17,9 +17,6 @@ import User from './models/User';
 import Student from './models/Student';
 import StudentPayment from './models/StudentPayment';
 import { setupAssociations } from './models/associations';
-
-// Load env vars
-dotenv.config();
 
 // Set up model relationships
 setupAssociations();

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../../layouts/DashboardLayout";
 import {
   CreditCard,
@@ -18,7 +18,6 @@ import {
   DollarSign,
   TrendingUp,
   Loader2,
-  ChevronDown,
   ReceiptText,
 } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
@@ -198,9 +197,10 @@ const ReceiptModal = ({
 // ============================================================
 export default function StudentPayment() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [payments, setPayments] = useState<StudentPaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("ref") || "");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [initiatingId, setInitiatingId] = useState<number | null>(null);
   const [verifyingRef, setVerifyingRef] = useState<string | null>(null);

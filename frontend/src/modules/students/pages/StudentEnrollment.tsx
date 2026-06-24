@@ -27,6 +27,14 @@ import {
 import { toast } from "react-toastify";
 import { fetchApi } from "../../../utils/api";
 
+type StudentCategory = "SLPA Employee" | "Sri Lankan Student" | "Non-Sri Lankan Student";
+
+interface EnrollmentDocument {
+  name: string;
+  size: string;
+  type: string;
+}
+
 const StudentEnrollment = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -67,7 +75,7 @@ const StudentEnrollment = () => {
     slpaPosition: "",
 
     // Step 6: Documents
-    documents: [] as any[]
+    documents: [] as EnrollmentDocument[]
   });
 
   const [employeeSearchId, setEmployeeSearchId] = useState("");
@@ -96,6 +104,19 @@ const StudentEnrollment = () => {
     }
   };
 
+  const handleCategorySelect = (studentCategory: StudentCategory) => {
+    setFormData(prev => ({
+      ...prev,
+      studentCategory,
+      idNumber: studentCategory === "Non-Sri Lankan Student" ? "" : prev.idNumber,
+      passportNumber: studentCategory === "Non-Sri Lankan Student" ? prev.passportNumber : "",
+      nationality: studentCategory === "Non-Sri Lankan Student" ? "" : "Sri Lankan",
+      countryOfOrigin: studentCategory === "Non-Sri Lankan Student" ? "" : "Sri Lanka",
+    }));
+    setEmployeeSearchId("");
+    setErrors({});
+  };
+
   const validateStep = (step: number) => {
     const newErrors: Record<string, string> = {};
 
@@ -114,6 +135,7 @@ const StudentEnrollment = () => {
         if (!formData.fullName) newErrors.fullName = "Full Name is required";
         if (!formData.passportNumber) newErrors.passportNumber = "Passport Number is required";
         if (!formData.nationality) newErrors.nationality = "Nationality is required";
+        if (!formData.countryOfOrigin) newErrors.countryOfOrigin = "Country of origin is required";
       }
       if (!formData.dob) newErrors.dob = "Date of Birth is required";
     } else if (step === 3) {
@@ -131,7 +153,7 @@ const StudentEnrollment = () => {
   const handleNext = () => {
     if (validateStep(currentStep)) {
       if (currentStep < 6) setCurrentStep(prev => prev + 1);
-    } else if (Object.keys(errors).length > 0) {
+    } else {
       toast.error("Please fill in all required fields.");
     }
   };
@@ -194,18 +216,25 @@ const StudentEnrollment = () => {
         address: formData.address,
         course: formData.course,
         batch: formData.batch || "2024 Fall",
-        // Additional meta could be added here if backend supports it
+        studentCategory: formData.studentCategory,
+        idNumber: formData.idNumber,
+        passportNumber: formData.passportNumber,
       };
 
-      await fetchApi('/students/enroll', {
+      const response = await fetchApi('/students/enroll', {
         method: 'POST',
         body: JSON.stringify(submitData)
-      });
+      }) as { message: string; emailSent: boolean };
 
-      toast.success("Student enrolled successfully!");
+      if (response.emailSent) {
+        toast.success("Student enrolled successfully! Payment details sent to student email.");
+      } else {
+        toast.success("Student enrolled successfully! Payment email could not be sent.");
+      }
       navigate("/student-management/enrollment");
-    } catch (error: any) {
-      toast.error(error.message || "Enrollment failed.");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Enrollment failed.";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -303,7 +332,7 @@ const StudentEnrollment = () => {
                     ].map((cat) => (
                       <div
                         key={cat.id}
-                        onClick={() => setFormData(prev => ({ ...prev, studentCategory: cat.id }))}
+                        onClick={() => handleCategorySelect(cat.id as StudentCategory)}
                         className={`group relative overflow-hidden flex flex-col p-8 rounded-[2rem] border-2 transition-all cursor-pointer hover:shadow-2xl hover:shadow-slate-200/50 ${formData.studentCategory === cat.id
                             ? 'bg-brand-50 border-brand-500 shadow-xl shadow-brand-500/10'
                             : 'bg-white border-slate-100 hover:border-slate-200'
@@ -449,7 +478,9 @@ const StudentEnrollment = () => {
                       )}
 
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1">Nationality</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">
+                          Nationality {formData.studentCategory === "Non-Sri Lankan Student" && <span className="text-red-500">*</span>}
+                        </label>
                         <div className="relative">
                           <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                           <input
@@ -459,20 +490,23 @@ const StudentEnrollment = () => {
                             className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
                           />
                         </div>
+                        {errors.nationality && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.nationality}</p>}
                       </div>
 
                       {formData.studentCategory === "Non-Sri Lankan Student" && (
                         <div className="space-y-2">
-                          <label className="text-sm font-bold text-slate-700 ml-1">Country of Residence</label>
+                          <label className="text-sm font-bold text-slate-700 ml-1">Country of Origin <span className="text-red-500">*</span></label>
                           <div className="relative">
                             <Flag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                             <input
                               name="countryOfOrigin"
                               value={formData.countryOfOrigin}
                               onChange={handleInputChange}
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
+                              className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all ${errors.countryOfOrigin ? 'border-red-400' : ''}`}
+                              placeholder="Enter country of origin"
                             />
                           </div>
+                          {errors.countryOfOrigin && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.countryOfOrigin}</p>}
                         </div>
                       )}
 
