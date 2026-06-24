@@ -1,6 +1,6 @@
+import './config/env';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import connectDB from './config/db';
 import vehicleRoutes from './routes/vehicleRoutes';
 import transportBookingRoutes from './routes/transportBookingRoutes';
@@ -11,12 +11,12 @@ import auditoriumBookingRoutes from './routes/auditoriumBookingRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import studentRoutes from './routes/studentRoutes';
+import studentPaymentRoutes from './routes/studentPaymentRoutes';
 import Maintenance from './models/Maintenance';
 import User from './models/User';
+import Student from './models/Student';
+import StudentPayment from './models/StudentPayment';
 import { setupAssociations } from './models/associations';
-
-// Load env vars
-dotenv.config();
 
 // Set up model relationships
 setupAssociations();
@@ -42,6 +42,7 @@ app.use('/api/maintenances', maintenanceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api/student-payments', studentPaymentRoutes);
 
 // Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -59,9 +60,9 @@ const init = async () => {
     await connectDB();
     
     // Sync models
-    // await User.sync();
-    // await Maintenance.sync({ alter: true });
-    console.log("Database models checked");
+    await Student.sync({ alter: true });
+    await StudentPayment.sync({ alter: true });
+    console.log("Database models synchronized.");
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
