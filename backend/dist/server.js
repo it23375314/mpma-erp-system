@@ -12,9 +12,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("./config/env");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
-const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = __importDefault(require("./config/db"));
 const vehicleRoutes_1 = __importDefault(require("./routes/vehicleRoutes"));
 const transportBookingRoutes_1 = __importDefault(require("./routes/transportBookingRoutes"));
@@ -24,9 +24,11 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const auditoriumBookingRoutes_1 = __importDefault(require("./routes/auditoriumBookingRoutes"));
 const maintenanceRoutes_1 = __importDefault(require("./routes/maintenanceRoutes"));
 const dashboardRoutes_1 = __importDefault(require("./routes/dashboardRoutes"));
+const studentRoutes_1 = __importDefault(require("./routes/studentRoutes"));
+const studentPaymentRoutes_1 = __importDefault(require("./routes/studentPaymentRoutes"));
+const Student_1 = __importDefault(require("./models/Student"));
+const StudentPayment_1 = __importDefault(require("./models/StudentPayment"));
 const associations_1 = require("./models/associations");
-// Load env vars
-dotenv_1.default.config();
 // Set up model relationships
 (0, associations_1.setupAssociations)();
 const app = (0, express_1.default)();
@@ -46,6 +48,8 @@ app.use('/api/auditorium-bookings', auditoriumBookingRoutes_1.default);
 app.use('/api/maintenances', maintenanceRoutes_1.default);
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/dashboard', dashboardRoutes_1.default);
+app.use('/api/students', studentRoutes_1.default);
+app.use('/api/student-payments', studentPaymentRoutes_1.default);
 // Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -59,9 +63,9 @@ const init = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield (0, db_1.default)();
         // Sync models
-        // await User.sync();
-        // await Maintenance.sync({ alter: true });
-        console.log("Database models checked");
+        yield Student_1.default.sync({ alter: true });
+        yield StudentPayment_1.default.sync({ alter: true });
+        console.log("Database models synchronized.");
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
         });

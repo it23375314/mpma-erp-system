@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import DashboardLayout from "../../../layouts/DashboardLayout";
 import { fetchApi } from "../../../utils/api";
+import { generateStudentProfilePdf } from "../../../utils/PDFGenerator";
 import ReceiptModal from "../components/ReceiptModal";
 import {
   Users,
@@ -14,6 +15,12 @@ import {
   GraduationCap,
   UserCheck,
   Calendar,
+  FileDown,
+  FileSpreadsheet,
+  Loader2,
+  RotateCcw,
+  Filter,
+  Download,
 } from "lucide-react";
 import type { PaymentStatus, StudentRecord } from "../types/student";
 import {
@@ -22,19 +29,28 @@ import {
   getStudentFullName,
 } from "../types/student";
 
+const API_BASE_URL = "http://localhost:5001/api";
+
+const categoryOptions = [
+  "All",
+  "SLPA Employee",
+  "Sri Lankan Student",
+  "Non-Sri Lankan Student",
+];
+const paymentStatusOptions = ["All", "Pending", "Paid", "Failed", "Cancelled", "Refunded"];
+const registrationStatusOptions = ["All", "Pending Payment", "Registered", "Cancelled"];
+
 const StudentStatusBadge = ({ status }: { status: string }) => {
   const styles: Record<string, string> = {
-    Enrolled: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    "Pending Payment": "bg-amber-100 text-amber-700 border-amber-200",
     Registered: "bg-blue-100 text-blue-700 border-blue-200",
-    Graduated: "bg-indigo-100 text-indigo-700 border-indigo-200",
-    Dropout: "bg-rose-100 text-rose-700 border-rose-200",
-    Pending: "bg-amber-100 text-amber-700 border-amber-200",
+    Cancelled: "bg-rose-100 text-rose-700 border-rose-200",
   };
 
   return (
     <span
       className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
-        styles[status] || styles.Pending
+        styles[status] || styles["Pending Payment"]
       }`}
     >
       {status}
@@ -51,7 +67,6 @@ const PaymentStatusBadge = ({ status }: { status: PaymentStatus | "NONE" }) => {
     REFUNDED: "bg-purple-100 text-purple-700 border-purple-200",
     NONE: "bg-slate-100 text-slate-500 border-slate-200",
   };
-
   const label = status === "NONE" ? "No Payment" : status.charAt(0) + status.slice(1).toLowerCase();
 
   return (
@@ -65,51 +80,165 @@ const PaymentStatusBadge = ({ status }: { status: PaymentStatus | "NONE" }) => {
   );
 };
 
+const getRegistrationStatus = (student: StudentRecord) => {
+  if (student.registrationStatus) return student.registrationStatus;
+  if (student.latestPayment?.payment_status === "CANCELLED" || student.status === "Dropout") {
+    return "Cancelled";
+  }
+  if (student.status === "Registered") return "Registered";
+  return "Pending Payment";
+};
+
+const buildQueryString = (filters: StudentFilters) => {
+  const params = new URLSearchParams();
+  if (filters.search.trim()) params.set("search", filters.search.trim());
+  if (filters.category !== "All") params.set("category", filters.category);
+  if (filters.course) params.set("course_id", filters.course);
+  if (filters.batch) params.set("batch_id", filters.batch);
+  if (filters.paymentStatus !== "All") params.set("payment_status", filters.paymentStatus.toUpperCase());
+  if (filters.registrationStatus !== "All") params.set("registration_status", filters.registrationStatus);
+  if (filters.fromDate) params.set("from_date", filters.fromDate);
+  if (filters.toDate) params.set("to_date", filters.toDate);
+  return params.toString();
+};
+
+interface StudentFilters {
+  search: string;
+  category: string;
+  paymentStatus: string;
+  registrationStatus: string;
+  course: string;
+  batch: string;
+  fromDate: string;
+  toDate: string;
+}
+
+const emptyFilters: StudentFilters = {
+  search: "",
+  category: "All",
+  paymentStatus: "All",
+  registrationStatus: "All",
+  course: "",
+  batch: "",
+  fromDate: "",
+  toDate: "",
+};
+
 export default function StudentList() {
   const navigate = useNavigate();
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<StudentFilters>(emptyFilters);
+  const [appliedFilters, setAppliedFilters] = useState<StudentFilters>(emptyFilters);
   const [receiptPayment, setReceiptPayment] = useState<{
     payment: StudentRecord["latestPayment"];
     studentName: string;
   } | null>(null);
 
   useEffect(() => {
-    loadStudents();
+    loadStudents(emptyFilters);
   }, []);
 
-  const loadStudents = async () => {
+  const courseOptions = useMemo(
+    () => Array.from(new Set(students.map((s) => s.course).filter(Boolean))).sort(),
+    [students]
+  );
+  const batchOptions = useMemo(
+    () => Array.from(new Set(students.map((s) => s.batch).filter(Boolean))).sort(),
+    [students]
+  );
+
+  const loadStudents = async (nextFilters: StudentFilters) => {
     setLoading(true);
     try {
-      const data = await fetchApi("/students?status=Enrolled,Registered");
+      const query = buildQueryString(nextFilters);
+      const data = await fetchApi(`/students${query ? `?${query}` : ""}`);
       setStudents(data);
-    } catch {
-      toast.error("Failed to load students");
+      setAppliedFilters(nextFilters);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load students";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredStudents = students.filter((student) => {
-    const fullName = getStudentFullName(student).toLowerCase();
-    const q = searchQuery.toLowerCase();
-    const idDoc = getNicOrPassport(student).toLowerCase();
-    return (
-      !q ||
-      fullName.includes(q) ||
-      student.email.toLowerCase().includes(q) ||
-      student.course.toLowerCase().includes(q) ||
-      student.id.toLowerCase().includes(q) ||
-      idDoc.includes(q) ||
-      (student.studentCategory || "").toLowerCase().includes(q)
-    );
-  });
+  const handleSearch = () => {
+    loadStudents(filters);
+  };
+
+  const clearFilters = () => {
+    setFilters(emptyFilters);
+    loadStudents(emptyFilters);
+  };
+
+  const downloadPdfReport = async () => {
+    setReportLoading(true);
+    try {
+      const query = buildQueryString(appliedFilters);
+      const response = await fetch(`${API_BASE_URL}/students/report/pdf${query ? `?${query}` : ""}`);
+      if (!response.ok) throw new Error("Failed to generate PDF report");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `student-management-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Student PDF report downloaded.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to generate PDF report";
+      toast.error(message);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const exportCsv = () => {
+    const headers = [
+      "Student ID",
+      "Full Name",
+      "Student Category",
+      "NIC / Passport",
+      "Course",
+      "Batch",
+      "Payment Status",
+      "Registration Status",
+      "Registered Date",
+    ];
+    const rows = students.map((student) => [
+      student.id,
+      getStudentFullName(student),
+      student.studentCategory || "",
+      getNicOrPassport(student),
+      student.course,
+      student.batch,
+      student.latestPayment?.payment_status || "No Payment",
+      getRegistrationStatus(student),
+      student.enrollmentDate ? new Date(student.enrollmentDate).toLocaleDateString("en-LK") : "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `student-list-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const stats = {
     total: students.length,
-    enrolled: students.filter((s) => s.status === "Enrolled").length,
-    registered: students.filter((s) => s.status === "Registered").length,
+    pending: students.filter((s) => getRegistrationStatus(s) === "Pending Payment").length,
+    registered: students.filter((s) => getRegistrationStatus(s) === "Registered").length,
     paid: students.filter((s) => s.latestPayment?.payment_status === "PAID").length,
   };
 
@@ -125,7 +254,7 @@ export default function StudentList() {
               <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Student List</h1>
             </div>
             <p className="text-slate-500 font-medium">
-              View all enrolled and registered students with payment and profile details.
+              Search, filter, report, and manage student registration records.
             </p>
           </div>
           <button
@@ -143,17 +272,17 @@ export default function StudentList() {
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Students</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filtered Students</p>
               <p className="text-2xl font-black text-slate-800 leading-tight">{stats.total}</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
+          <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-amber-100 text-amber-600">
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Enrolled</p>
-              <p className="text-2xl font-black text-emerald-600 leading-tight">{stats.enrolled}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Payment</p>
+              <p className="text-2xl font-black text-amber-600 leading-tight">{stats.pending}</p>
             </div>
           </div>
           <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-5 flex items-center gap-4">
@@ -176,34 +305,195 @@ export default function StudentList() {
           </div>
         </div>
 
+        {showFilters && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <Filter className="w-5 h-5 text-brand-600" />
+              <h2 className="text-lg font-bold text-slate-800">Filter & Reports</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="xl:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Name, NIC, passport, payment reference..."
+                    value={filters.search}
+                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/10 focus:border-brand-500 transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Student Category</label>
+                <select
+                  value={filters.category}
+                  onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                >
+                  {categoryOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Payment Status</label>
+                <select
+                  value={filters.paymentStatus}
+                  onChange={(e) => setFilters({ ...filters, paymentStatus: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                >
+                  {paymentStatusOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Registration Status</label>
+                <select
+                  value={filters.registrationStatus}
+                  onChange={(e) => setFilters({ ...filters, registrationStatus: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                >
+                  {registrationStatusOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Course</label>
+                <select
+                  value={filters.course}
+                  onChange={(e) => setFilters({ ...filters, course: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                >
+                  <option value="">All Courses</option>
+                  {courseOptions.map((course) => (
+                    <option key={course} value={course}>{course}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Batch</label>
+                <select
+                  value={filters.batch}
+                  onChange={(e) => setFilters({ ...filters, batch: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                >
+                  <option value="">All Batches</option>
+                  {batchOptions.map((batch) => (
+                    <option key={batch} value={batch}>{batch}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">From Date</label>
+                <input
+                  type="date"
+                  value={filters.fromDate}
+                  onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">To Date</label>
+                <input
+                  type="date"
+                  value={filters.toDate}
+                  onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 mt-5">
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-semibold transition-all disabled:opacity-60"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                Search
+              </button>
+              <button
+                onClick={clearFilters}
+                disabled={loading}
+                className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-semibold hover:bg-slate-50 transition-all disabled:opacity-60"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Clear Filters
+              </button>
+              <button
+                onClick={downloadPdfReport}
+                disabled={reportLoading || loading}
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-semibold transition-all disabled:opacity-60"
+              >
+                {reportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                Generate PDF
+              </button>
+              <button
+                onClick={exportCsv}
+                disabled={loading || students.length === 0}
+                className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-100 transition-all disabled:opacity-50"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Export Excel
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-lg font-bold text-slate-800">Enrolled & Registered Students</h2>
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by name, ID, NIC, course..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/10 focus:border-brand-500 transition-all"
-              />
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Student Records</h2>
+              <div className="text-sm text-slate-500">
+                Showing <span className="font-bold text-slate-800">{students.length}</span> filtered records
+              </div>
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search students..."
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSearch();
+                    }
+                  }}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-700 outline-none transition-all placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
+                />
+              </div>
+              <button
+                onClick={() => setShowFilters((value) => !value)}
+                title={showFilters ? "Hide Filters" : "Filter & Reports"}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-all ${
+                  showFilters
+                    ? "border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100"
+                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-brand-600"
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[1100px]">
+            <table className="w-full text-left min-w-[1320px]">
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   <th className="px-4 py-4">Student ID</th>
                   <th className="px-4 py-4">Full Name</th>
-                  <th className="px-4 py-4">Category</th>
+                  <th className="px-4 py-4">Student Category</th>
                   <th className="px-4 py-4">NIC / Passport</th>
                   <th className="px-4 py-4">Course</th>
                   <th className="px-4 py-4">Batch</th>
                   <th className="px-4 py-4 text-center">Payment Status</th>
-                  <th className="px-4 py-4 text-center">Student Status</th>
-                  <th className="px-4 py-4">Created Date</th>
+                  <th className="px-4 py-4 text-center">Registration Status</th>
+                  <th className="px-4 py-4">Registered Date</th>
                   <th className="px-4 py-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -211,21 +501,23 @@ export default function StudentList() {
                 {loading ? (
                   <tr>
                     <td colSpan={10} className="p-12 text-center text-slate-400">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-brand-500" />
                       Loading students...
                     </td>
                   </tr>
-                ) : filteredStudents.length === 0 ? (
+                ) : students.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="p-12 text-center text-slate-500">
-                      No students found
+                      No students found for the selected filters.
                     </td>
                   </tr>
                 ) : (
-                  filteredStudents.map((student) => {
+                  students.map((student) => {
                     const paymentStatus = (student.latestPayment?.payment_status || "NONE") as
                       | PaymentStatus
                       | "NONE";
                     const fullName = getStudentFullName(student);
+                    const registrationStatus = getRegistrationStatus(student);
 
                     return (
                       <tr key={student.id} className="hover:bg-slate-50/50 transition-all">
@@ -239,7 +531,7 @@ export default function StudentList() {
                           <div className="text-xs text-slate-500">{student.email}</div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
-                          {student.studentCategory || "—"}
+                          {student.studentCategory || "-"}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
                           {getNicOrPassport(student)}
@@ -254,28 +546,28 @@ export default function StudentList() {
                           <PaymentStatusBadge status={paymentStatus} />
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-center">
-                          <StudentStatusBadge status={student.status} />
+                          <StudentStatusBadge status={registrationStatus} />
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2 text-sm text-slate-600">
                             <Calendar className="w-4 h-4 text-slate-400" />
-                            {new Date(student.createdAt).toLocaleDateString("en-LK")}
+                            {student.enrollmentDate
+                              ? new Date(student.enrollmentDate).toLocaleDateString("en-LK")
+                              : "-"}
                           </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              title="View Profile"
+                              title="View"
                               onClick={() => navigate(`/student-management/students/${student.id}`)}
                               className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-all"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
-                              title="Edit Student"
-                              onClick={() =>
-                                navigate(`/student-management/students/${student.id}?edit=true`)
-                              }
+                              title="Edit"
+                              onClick={() => navigate(`/student-management/students/${student.id}?edit=true`)}
                               className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                             >
                               <Edit3 className="w-4 h-4" />
@@ -308,6 +600,18 @@ export default function StudentList() {
                               className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               <ReceiptText className="w-4 h-4" />
+                            </button>
+                            <button
+                              title="Generate Student Profile PDF"
+                              onClick={() =>
+                                generateStudentProfilePdf({
+                                  ...student,
+                                  registrationStatus,
+                                })
+                              }
+                              className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
+                            >
+                              <Download className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
