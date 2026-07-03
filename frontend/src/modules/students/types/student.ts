@@ -39,6 +39,7 @@ export interface StudentRecord {
   updatedAt: string;
   latestPayment?: StudentPaymentSummary | null;
   payments?: StudentPaymentSummary[];
+  registrationStatus?: 'Pending Payment' | 'Registered' | 'Cancelled';
 }
 
 export const formatStudentId = (id: string): string => {

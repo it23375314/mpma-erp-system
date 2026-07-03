@@ -19,9 +19,11 @@ import {
   TrendingUp,
   Loader2,
   ReceiptText,
+  Download,
 } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { generateStudentPaymentReceipt } from "../../../utils/PDFGenerator";
 
 // ============================================================
 // TypeScript Interfaces
@@ -272,6 +274,22 @@ export default function StudentPayment() {
     } finally {
       setVerifyingRef(null);
     }
+  };
+
+  const handleDownloadReceipt = (payment: StudentPaymentRecord) => {
+    const studentName = payment.student
+      ? `${payment.student.firstName} ${payment.student.lastName}`
+      : `Student #${payment.student_id}`;
+    const courseBatch = payment.student
+      ? `${payment.student.course} / ${payment.student.batch}`
+      : undefined;
+
+    generateStudentPaymentReceipt({
+      payment,
+      studentName,
+      courseBatch,
+    });
+    toast.success("Receipt slip downloaded.");
   };
 
   // ── Derived stats ──────────────────────────────────────────
@@ -592,15 +610,26 @@ export default function StudentPayment() {
 
                             {/* View Receipt */}
                             {p.payment_status === "PAID" && (
-                              <button
-                                id={`btn-receipt-${p.id}`}
-                                onClick={() => setReceiptPayment(p)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-all"
-                                title="View receipt"
-                              >
-                                <FileText className="w-3.5 h-3.5" />
-                                Receipt
-                              </button>
+                              <>
+                                <button
+                                  id={`btn-receipt-${p.id}`}
+                                  onClick={() => setReceiptPayment(p)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-all"
+                                  title="View receipt"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                  Receipt
+                                </button>
+                                <button
+                                  id={`btn-download-receipt-${p.id}`}
+                                  onClick={() => handleDownloadReceipt(p)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
+                                  title="Download receipt slip"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  Download
+                                </button>
+                              </>
                             )}
 
                             {/* Retry for failed */}
