@@ -10,6 +10,7 @@ import authRoutes from './routes/authRoutes';
 import auditoriumBookingRoutes from './routes/auditoriumBookingRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+
 import courseRoutes from './routes/courseRoutes';
 import batchRoutes from './routes/batchRoutes';
 import lecturerRoutes from './routes/lecturerRoutes';

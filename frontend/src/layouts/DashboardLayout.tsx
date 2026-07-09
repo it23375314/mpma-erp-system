@@ -153,6 +153,7 @@ export default function DashboardLayout({ children }: any) {
           )}
         </div>
 
+
         {/* Course Management Section (Admin & Officer Only) */}
         {(userRole === "admin" || userRole === "officer") && (
           <div className="space-y-1">
@@ -215,7 +216,8 @@ export default function DashboardLayout({ children }: any) {
           </div>
         )}
 
-        {/* Student Management Parent */}
+
+{/* Student Management Parent */}
         <div className="space-y-1">
           <button
             onClick={() => setIsStudentManagementOpen(!isStudentManagementOpen)}

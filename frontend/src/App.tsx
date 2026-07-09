@@ -45,6 +45,7 @@ function App() {
       <Route path="/edit-classroom-booking/:id" element={<EditClassroomBooking />} />
       <Route path="/manage-maintenance" element={<ManageMaintenance />} />
       <Route path="/manage-users" element={<ManageUsers />} />
+
       {/* Course Management Module Routes */}
       <Route path="/manage-courses" element={<ManageCourses />} />
       <Route path="/manage-batches" element={<ManageBatches />} />
