@@ -24,6 +24,10 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const auditoriumBookingRoutes_1 = __importDefault(require("./routes/auditoriumBookingRoutes"));
 const maintenanceRoutes_1 = __importDefault(require("./routes/maintenanceRoutes"));
 const dashboardRoutes_1 = __importDefault(require("./routes/dashboardRoutes"));
+const courseRoutes_1 = __importDefault(require("./routes/courseRoutes"));
+const batchRoutes_1 = __importDefault(require("./routes/batchRoutes"));
+const lecturerRoutes_1 = __importDefault(require("./routes/lecturerRoutes"));
+const studentRoutes_1 = __importDefault(require("./routes/studentRoutes"));
 const associations_1 = require("./models/associations");
 // Load env vars
 dotenv_1.default.config();
@@ -46,6 +50,10 @@ app.use('/api/auditorium-bookings', auditoriumBookingRoutes_1.default);
 app.use('/api/maintenances', maintenanceRoutes_1.default);
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/dashboard', dashboardRoutes_1.default);
+app.use('/api/courses', courseRoutes_1.default);
+app.use('/api/batches', batchRoutes_1.default);
+app.use('/api/lecturers', lecturerRoutes_1.default);
+app.use('/api/students', studentRoutes_1.default);
 // Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);

@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 
+// Booking Management Imports
 import AuditoriumBooking from "./modules/booking/pages/AuditoriumBooking";
 import ClassroomBooking from "./modules/booking/pages/ClassroomBooking";
 import TransportBooking from "./modules/booking/pages/TransportBooking";
@@ -15,13 +16,22 @@ import NewClassroomBooking from "./modules/booking/pages/NewClassroomBooking";
 import EditClassroomBooking from "./modules/booking/pages/EditClassroomBooking";
 import ManageMaintenance from "./modules/booking/pages/ManageMaintenance";
 import ManageUsers from "./modules/booking/pages/ManageUsers";
+import ManageCourses from "./modules/courses/pages/ManageCourses";
+import ManageBatches from "./modules/courses/pages/ManageBatches";
+import ManageLecturers from "./modules/courses/pages/ManageLecturers";
 
+// Student Management Imports
+import ManageEnrollment from "./modules/students/pages/ManageEnrollment";
+import StudentEnrollment from "./modules/students/pages/StudentEnrollment";
+import StudentPayment from "./modules/students/pages/StudentPayment";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      
+      {/* Booking Management Routes */}
       <Route path="/auditorium-booking" element={<AuditoriumBooking />} />
       <Route path="/new-booking" element={<NewBooking />} />
       <Route path="/classroom-booking" element={<ClassroomBooking />} />
@@ -35,6 +45,15 @@ function App() {
       <Route path="/edit-classroom-booking/:id" element={<EditClassroomBooking />} />
       <Route path="/manage-maintenance" element={<ManageMaintenance />} />
       <Route path="/manage-users" element={<ManageUsers />} />
+      {/* Course Management Module Routes */}
+      <Route path="/manage-courses" element={<ManageCourses />} />
+      <Route path="/manage-batches" element={<ManageBatches />} />
+      <Route path="/manage-lecturers" element={<ManageLecturers />} />
+
+      {/* Student Management Routes */}
+      <Route path="/student-management/enrollment" element={<ManageEnrollment />} />
+      <Route path="/student-management/enrollment/new" element={<StudentEnrollment />} />
+      <Route path="/student-management/payment" element={<StudentPayment />} />
     </Routes>
   );
 }

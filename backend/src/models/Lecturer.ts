@@ -1,0 +1,110 @@
+import { sequelize, DataTypes, Model, Optional } from '../config/db';
+
+export interface LecturerAttributes {
+  id: string;
+  fullName: string;
+  nicPassport: string;
+  dateOfBirth: string;
+  gender: string;
+  mobile: string;
+  email: string;
+  address: string;
+  emergencyContact: string;
+  bankName: string;
+  branchName: string;
+  accountHolderName: string;
+  accountNumber: string;
+  status: 'Active' | 'Inactive';
+}
+
+interface LecturerCreationAttributes extends Optional<LecturerAttributes, 'id' | 'status'> {}
+
+export class Lecturer extends Model<LecturerAttributes, LecturerCreationAttributes> implements LecturerAttributes {
+  public id!: string;
+  public fullName!: string;
+  public nicPassport!: string;
+  public dateOfBirth!: string;
+  public gender!: string;
+  public mobile!: string;
+  public email!: string;
+  public address!: string;
+  public emergencyContact!: string;
+  public bankName!: string;
+  public branchName!: string;
+  public accountHolderName!: string;
+  public accountNumber!: string;
+  public status!: 'Active' | 'Inactive';
+
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Lecturer.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    fullName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    nicPassport: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    dateOfBirth: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+    },
+    gender: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    mobile: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    address: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    emergencyContact: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    bankName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    branchName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    accountHolderName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    accountNumber: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    status: {
+      type: DataTypes.ENUM('Active', 'Inactive'),
+      defaultValue: 'Active',
+    },
+  },
+  {
+    sequelize,
+    tableName: 'lecturers',
+  }
+);
+
+export default Lecturer;

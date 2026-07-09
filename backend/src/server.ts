@@ -10,6 +10,10 @@ import authRoutes from './routes/authRoutes';
 import auditoriumBookingRoutes from './routes/auditoriumBookingRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import courseRoutes from './routes/courseRoutes';
+import batchRoutes from './routes/batchRoutes';
+import lecturerRoutes from './routes/lecturerRoutes';
+import studentRoutes from './routes/studentRoutes';
 import Maintenance from './models/Maintenance';
 import User from './models/User';
 import { setupAssociations } from './models/associations';
@@ -40,6 +44,10 @@ app.use('/api/auditorium-bookings', auditoriumBookingRoutes);
 app.use('/api/maintenances', maintenanceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/batches', batchRoutes);
+app.use('/api/lecturers', lecturerRoutes);
+app.use('/api/students', studentRoutes);
 
 // Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
