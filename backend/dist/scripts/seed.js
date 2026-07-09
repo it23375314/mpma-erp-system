@@ -27,6 +27,8 @@ const seedData = () => __awaiter(void 0, void 0, void 0, function* () {
         // Authenticate and sync
         yield db_1.sequelize.authenticate();
         console.log('Database connected.');
+        yield db_1.sequelize.sync();
+        console.log('Database synchronized.');
         const pickRandom = (items) => items[Math.floor(Math.random() * items.length)];
         const makeDateString = (daysAheadMin, daysAheadMax) => {
             const date = new Date();

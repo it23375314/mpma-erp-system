@@ -48,12 +48,24 @@ Student.init({
         type: db_1.DataTypes.STRING,
         allowNull: false,
     },
+    studentCategory: {
+        type: db_1.DataTypes.STRING,
+        allowNull: true,
+    },
+    nic: {
+        type: db_1.DataTypes.STRING,
+        allowNull: true,
+    },
+    passport: {
+        type: db_1.DataTypes.STRING,
+        allowNull: true,
+    },
     enrollmentDate: {
         type: db_1.DataTypes.DATEONLY,
         defaultValue: db_1.DataTypes.NOW,
     },
     status: {
-        type: db_1.DataTypes.ENUM('Pending', 'Enrolled', 'Graduated', 'Dropout'),
+        type: db_1.DataTypes.ENUM('Pending', 'Enrolled', 'Registered', 'Graduated', 'Dropout'),
         defaultValue: 'Pending',
     },
 }, {

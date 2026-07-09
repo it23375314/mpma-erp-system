@@ -13,6 +13,8 @@ const Course_1 = require("./Course");
 const Batch_1 = require("./Batch");
 const Lecturer_1 = require("./Lecturer");
 const BatchLecturer_1 = require("./BatchLecturer");
+const StudentPayment_1 = __importDefault(require("./StudentPayment"));
+const Student_1 = __importDefault(require("./Student"));
 const setupAssociations = () => {
     // Classroom & Bookings
     Classroom_1.Classroom.hasMany(ClassroomBooking_1.ClassroomBooking, { foreignKey: 'classroomId', as: 'bookings' });
@@ -34,5 +36,9 @@ const setupAssociations = () => {
     BatchLecturer_1.BatchLecturer.belongsTo(Batch_1.Batch, { foreignKey: 'batchId', as: 'batch' });
     Lecturer_1.Lecturer.hasMany(BatchLecturer_1.BatchLecturer, { foreignKey: 'lecturerId', as: 'assignments' });
     BatchLecturer_1.BatchLecturer.belongsTo(Lecturer_1.Lecturer, { foreignKey: 'lecturerId', as: 'lecturer' });
+    // StudentPayment & Student associations
+    // A student can have many payments; each payment belongs to one student.
+    Student_1.default.hasMany(StudentPayment_1.default, { foreignKey: 'student_id', as: 'payments', constraints: false });
+    StudentPayment_1.default.belongsTo(Student_1.default, { foreignKey: 'student_id', as: 'student', constraints: false });
 };
 exports.setupAssociations = setupAssociations;
