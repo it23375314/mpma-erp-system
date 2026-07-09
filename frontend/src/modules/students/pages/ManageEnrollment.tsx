@@ -57,6 +57,8 @@ export default function ManageEnrollment() {
     switch (status) {
       case "Enrolled":
         return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">Enrolled</span>;
+      case "Registered":
+        return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wider">Registered</span>;
       case "Graduated":
         return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wider">Graduated</span>;
       case "Dropout":

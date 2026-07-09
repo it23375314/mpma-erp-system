@@ -7,6 +7,9 @@ import { Course } from './Course';
 import { Batch } from './Batch';
 import { Lecturer } from './Lecturer';
 import { BatchLecturer } from './BatchLecturer';
+import StudentPayment from './StudentPayment';
+import Student from './Student';
+
 
 export const setupAssociations = () => {
   // Classroom & Bookings
@@ -35,5 +38,9 @@ export const setupAssociations = () => {
 
   Lecturer.hasMany(BatchLecturer, { foreignKey: 'lecturerId', as: 'assignments' });
   BatchLecturer.belongsTo(Lecturer, { foreignKey: 'lecturerId', as: 'lecturer' });
-};
 
+  // StudentPayment & Student associations
+  // A student can have many payments; each payment belongs to one student.
+  Student.hasMany(StudentPayment, { foreignKey: 'student_id', as: 'payments', constraints: false });
+  StudentPayment.belongsTo(Student, { foreignKey: 'student_id', as: 'student', constraints: false });
+};

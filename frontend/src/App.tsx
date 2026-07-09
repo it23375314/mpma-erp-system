@@ -23,14 +23,17 @@ import ManageLecturers from "./modules/courses/pages/ManageLecturers";
 // Student Management Imports
 import ManageEnrollment from "./modules/students/pages/ManageEnrollment";
 import StudentEnrollment from "./modules/students/pages/StudentEnrollment";
+import StudentList from "./modules/students/pages/StudentList";
+import StudentProfile from "./modules/students/pages/StudentProfile";
 import StudentPayment from "./modules/students/pages/StudentPayment";
+import GovPayDemo from "./pages/student/GovPayDemo";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />
       <Route path="/dashboard" element={<Dashboard />} />
-      
+
       {/* Booking Management Routes */}
       <Route path="/auditorium-booking" element={<AuditoriumBooking />} />
       <Route path="/new-booking" element={<NewBooking />} />
@@ -52,9 +55,12 @@ function App() {
       <Route path="/manage-lecturers" element={<ManageLecturers />} />
 
       {/* Student Management Routes */}
+      <Route path="/student-management/students" element={<StudentList />} />
+      <Route path="/student-management/students/:id" element={<StudentProfile />} />
       <Route path="/student-management/enrollment" element={<ManageEnrollment />} />
       <Route path="/student-management/enrollment/new" element={<StudentEnrollment />} />
       <Route path="/student-management/payment" element={<StudentPayment />} />
+      <Route path="/student-management/payment/govpay-demo" element={<GovPayDemo />} />
     </Routes>
   );
 }

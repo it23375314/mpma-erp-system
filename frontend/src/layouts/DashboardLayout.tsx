@@ -237,10 +237,11 @@ export default function DashboardLayout({ children }: any) {
           {isStudentManagementOpen && (
             <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
               {[
+                { path: "/student-management/students", label: "Student List", icon: Users },
                 { path: "/student-management/enrollment", label: "Enrollment", icon: ClipboardCheck },
                 { path: "/student-management/payment", label: "Payment", icon: CreditCard },
               ].map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
                 const Icon = item.icon;
                 return (
                   <Link
