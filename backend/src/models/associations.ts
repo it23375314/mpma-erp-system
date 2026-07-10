@@ -9,6 +9,8 @@ import { Lecturer } from './Lecturer';
 import { BatchLecturer } from './BatchLecturer';
 import StudentPayment from './StudentPayment';
 import Student from './Student';
+import ApplicationDocument from './ApplicationDocument';
+import VerificationChecklist from './VerificationChecklist';
 
 
 export const setupAssociations = () => {
@@ -40,7 +42,14 @@ export const setupAssociations = () => {
   BatchLecturer.belongsTo(Lecturer, { foreignKey: 'lecturerId', as: 'lecturer' });
 
   // StudentPayment & Student associations
-  // A student can have many payments; each payment belongs to one student.
   Student.hasMany(StudentPayment, { foreignKey: 'student_id', as: 'payments', constraints: false });
   StudentPayment.belongsTo(Student, { foreignKey: 'student_id', as: 'student', constraints: false });
+
+  // ApplicationDocument & Student associations
+  Student.hasMany(ApplicationDocument, { foreignKey: 'student_id', as: 'documents', constraints: false });
+  ApplicationDocument.belongsTo(Student, { foreignKey: 'student_id', as: 'student', constraints: false });
+
+  // VerificationChecklist & Student associations
+  Student.hasOne(VerificationChecklist, { foreignKey: 'student_id', as: 'checklist', constraints: false });
+  VerificationChecklist.belongsTo(Student, { foreignKey: 'student_id', as: 'student', constraints: false });
 };

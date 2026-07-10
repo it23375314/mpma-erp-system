@@ -1,5 +1,19 @@
 import { sequelize, DataTypes, Model, Optional } from '../config/db';
 
+export type ApplicationStatus =
+  | 'PENDING_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'CORRECTION_REQUESTED';
+
+export type PaymentStatusType =
+  | 'NOT_REQUESTED'
+  | 'PENDING'
+  | 'PAID'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
 export interface StudentAttributes {
   id: string;
   firstName: string;
@@ -15,10 +29,31 @@ export interface StudentAttributes {
   nic?: string | null;
   passport?: string | null;
   enrollmentDate: string;
-  status: 'Pending' | 'Enrolled' | 'Registered' | 'Graduated' | 'Dropout';
+  status: 'Pending' | 'Applied' | 'Qualified' | 'Enrolled' | 'Registered' | 'Graduated' | 'Dropout';
+  // New workflow fields
+  application_status?: ApplicationStatus | null;
+  enrollment_type?: 'STUDENT_SELF' | 'ADMIN_DIRECT' | null;
+  payment_status_type?: PaymentStatusType | null;
+  approved_at?: Date | null;
+  admin_notes?: string | null;
+  registration_number?: string | null;
 }
 
-interface StudentCreationAttributes extends Optional<StudentAttributes, 'id' | 'enrollmentDate' | 'status' | 'studentCategory' | 'nic' | 'passport'> { }
+interface StudentCreationAttributes extends Optional<
+  StudentAttributes,
+  | 'id'
+  | 'enrollmentDate'
+  | 'status'
+  | 'studentCategory'
+  | 'nic'
+  | 'passport'
+  | 'application_status'
+  | 'enrollment_type'
+  | 'payment_status_type'
+  | 'approved_at'
+  | 'admin_notes'
+  | 'registration_number'
+> { }
 
 export class Student extends Model<StudentAttributes, StudentCreationAttributes> implements StudentAttributes {
   public id!: string;
@@ -35,7 +70,13 @@ export class Student extends Model<StudentAttributes, StudentCreationAttributes>
   public nic!: string | null;
   public passport!: string | null;
   public enrollmentDate!: string;
-  public status!: 'Pending' | 'Enrolled' | 'Registered' | 'Graduated' | 'Dropout';
+  public status!: 'Pending' | 'Applied' | 'Qualified' | 'Enrolled' | 'Registered' | 'Graduated' | 'Dropout';
+  public application_status!: ApplicationStatus | null;
+  public enrollment_type!: 'STUDENT_SELF' | 'ADMIN_DIRECT' | null;
+  public payment_status_type!: PaymentStatusType | null;
+  public approved_at!: Date | null;
+  public admin_notes!: string | null;
+  public registration_number!: string | null;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -102,8 +143,38 @@ Student.init(
       defaultValue: DataTypes.NOW,
     },
     status: {
-      type: DataTypes.ENUM('Pending', 'Enrolled', 'Registered', 'Graduated', 'Dropout'),
+      type: DataTypes.ENUM('Pending', 'Applied', 'Qualified', 'Enrolled', 'Registered', 'Graduated', 'Dropout'),
       defaultValue: 'Pending',
+    },
+    application_status: {
+      type: DataTypes.ENUM('PENDING_REVIEW', 'APPROVED', 'REJECTED', 'CORRECTION_REQUESTED'),
+      allowNull: true,
+      defaultValue: null,
+    },
+    enrollment_type: {
+      type: DataTypes.ENUM('STUDENT_SELF', 'ADMIN_DIRECT'),
+      allowNull: true,
+      defaultValue: null,
+    },
+    payment_status_type: {
+      type: DataTypes.ENUM('NOT_REQUESTED', 'PENDING', 'PAID', 'FAILED', 'CANCELLED', 'REFUNDED'),
+      allowNull: true,
+      defaultValue: null,
+    },
+    approved_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
+    admin_notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
+    },
+    registration_number: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null,
     },
   },
   {

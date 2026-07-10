@@ -207,12 +207,15 @@ const handleGovPayCallback = (req, res) => __awaiter(void 0, void 0, void 0, fun
             // --------------------------------------------------------
             // UPDATE STUDENT STATUS TO REGISTERED
             // After successful payment, the student registration status
-            // should become REGISTERED.
+            // should become REGISTERED and payment_status_type = PAID
             // --------------------------------------------------------
             const student = yield Student_1.default.findByPk(payment.student_id);
             if (student) {
-                yield student.update({ status: 'Registered' });
-                console.log(`Student ${payment.student_id} status updated to Registered.`);
+                yield student.update({
+                    status: 'Registered',
+                    payment_status_type: 'PAID',
+                });
+                console.log(`Student ${payment.student_id} status updated to Registered with payment_status_type=PAID.`);
             }
             return res.status(200).json({
                 success: true,
@@ -232,6 +235,12 @@ const handleGovPayCallback = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 callback_response,
                 remarks: 'Payment failed as reported by GovPay callback',
             });
+            // Update student payment_status_type to FAILED
+            const student = yield Student_1.default.findByPk(payment.student_id);
+            if (student) {
+                yield student.update({ payment_status_type: 'FAILED' });
+                console.log(`Student ${payment.student_id} payment_status_type updated to FAILED.`);
+            }
             return res.status(200).json({
                 success: true,
                 message: 'Payment marked as FAILED.',
