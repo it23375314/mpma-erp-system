@@ -6,6 +6,8 @@
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "seed:courses": "ts-node src/scripts/seedMpmaCourses.ts",
+    "seed:course-data": "ts-node src/scripts/seedCourseBatchesAndLecturers.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
