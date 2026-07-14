@@ -15,6 +15,8 @@ const seedData = async () => {
     // Authenticate and sync
     await sequelize.authenticate();
     console.log('Database connected.');
+    await sequelize.sync();
+    console.log('Database synchronized.');
 
     const pickRandom = <T,>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)];
     const makeDateString = (daysAheadMin: number, daysAheadMax: number) => {

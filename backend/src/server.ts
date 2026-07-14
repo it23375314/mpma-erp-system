@@ -10,12 +10,18 @@ import authRoutes from './routes/authRoutes';
 import auditoriumBookingRoutes from './routes/auditoriumBookingRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+
+import courseRoutes from './routes/courseRoutes';
+import batchRoutes from './routes/batchRoutes';
+import lecturerRoutes from './routes/lecturerRoutes';
 import studentRoutes from './routes/studentRoutes';
 import studentPaymentRoutes from './routes/studentPaymentRoutes';
 import Maintenance from './models/Maintenance';
 import User from './models/User';
 import Student from './models/Student';
 import StudentPayment from './models/StudentPayment';
+import ApplicationDocument from './models/ApplicationDocument';
+import VerificationChecklist from './models/VerificationChecklist';
 import { setupAssociations } from './models/associations';
 
 // Set up model relationships
@@ -25,7 +31,8 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -41,6 +48,9 @@ app.use('/api/auditorium-bookings', auditoriumBookingRoutes);
 app.use('/api/maintenances', maintenanceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/batches', batchRoutes);
+app.use('/api/lecturers', lecturerRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/student-payments', studentPaymentRoutes);
 
@@ -59,9 +69,11 @@ const init = async () => {
   try {
     await connectDB();
     
-    // Sync models
+    // Sync models (alter: true safely adds new columns)
     await Student.sync({ alter: true });
     await StudentPayment.sync({ alter: true });
+    await ApplicationDocument.sync({ alter: true });
+    await VerificationChecklist.sync({ alter: true });
     console.log("Database models synchronized.");
 
     app.listen(PORT, () => {

@@ -9,8 +9,13 @@ const Classroom_1 = require("./Classroom");
 const Vehicle_1 = require("./Vehicle");
 const ClassroomBooking_1 = require("./ClassroomBooking");
 const TransportBooking_1 = require("./TransportBooking");
+const Course_1 = require("./Course");
+const Batch_1 = require("./Batch");
+const Lecturer_1 = require("./Lecturer");
+const BatchLecturer_1 = require("./BatchLecturer");
 const StudentPayment_1 = __importDefault(require("./StudentPayment"));
 const Student_1 = __importDefault(require("./Student"));
+const ApplicationDocument_1 = __importDefault(require("./ApplicationDocument"));
 const setupAssociations = () => {
     // Classroom & Bookings
     Classroom_1.Classroom.hasMany(ClassroomBooking_1.ClassroomBooking, { foreignKey: 'classroomId', as: 'bookings' });
@@ -21,9 +26,24 @@ const setupAssociations = () => {
     // Maintenance associations
     Maintenance_1.default.belongsTo(Classroom_1.Classroom, { foreignKey: 'facilityId', as: 'classroom', constraints: false });
     Maintenance_1.default.belongsTo(Vehicle_1.Vehicle, { foreignKey: 'facilityId', as: 'vehicle', constraints: false });
+    // Course & Batch associations
+    Course_1.Course.hasMany(Batch_1.Batch, { foreignKey: 'courseId', as: 'batches' });
+    Batch_1.Batch.belongsTo(Course_1.Course, { foreignKey: 'courseId', as: 'course' });
+    // Batch & Lecturer many-to-many associations
+    Batch_1.Batch.belongsToMany(Lecturer_1.Lecturer, { through: BatchLecturer_1.BatchLecturer, foreignKey: 'batchId', otherKey: 'lecturerId', as: 'lecturers' });
+    Lecturer_1.Lecturer.belongsToMany(Batch_1.Batch, { through: BatchLecturer_1.BatchLecturer, foreignKey: 'lecturerId', otherKey: 'batchId', as: 'batches' });
+    // Direct associations for junction query convenience
+    Batch_1.Batch.hasMany(BatchLecturer_1.BatchLecturer, { foreignKey: 'batchId', as: 'assignments' });
+    BatchLecturer_1.BatchLecturer.belongsTo(Batch_1.Batch, { foreignKey: 'batchId', as: 'batch' });
+    Lecturer_1.Lecturer.hasMany(BatchLecturer_1.BatchLecturer, { foreignKey: 'lecturerId', as: 'assignments' });
+    BatchLecturer_1.BatchLecturer.belongsTo(Lecturer_1.Lecturer, { foreignKey: 'lecturerId', as: 'lecturer' });
     // StudentPayment & Student associations
     // A student can have many payments; each payment belongs to one student.
     Student_1.default.hasMany(StudentPayment_1.default, { foreignKey: 'student_id', as: 'payments', constraints: false });
     StudentPayment_1.default.belongsTo(Student_1.default, { foreignKey: 'student_id', as: 'student', constraints: false });
+    // ApplicationDocument & Student associations
+    // A student can have many application documents; each document belongs to one student.
+    Student_1.default.hasMany(ApplicationDocument_1.default, { foreignKey: 'student_id', as: 'documents', constraints: false });
+    ApplicationDocument_1.default.belongsTo(Student_1.default, { foreignKey: 'student_id', as: 'student', constraints: false });
 };
 exports.setupAssociations = setupAssociations;

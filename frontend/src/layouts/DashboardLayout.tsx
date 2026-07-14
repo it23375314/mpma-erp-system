@@ -16,9 +16,12 @@ import {
   ClipboardList,
   Users,
   Key,
+  Layers,
   GraduationCap,
   CreditCard,
-  ClipboardCheck
+  ClipboardCheck,
+  ShieldCheck,
+  Award
 } from "lucide-react";
 import logoImg from "../assets/logo.png";
 import ChangePasswordModal from "../components/ChangePasswordModal";
@@ -29,7 +32,15 @@ export default function DashboardLayout({ children }: any) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const userRole = user.role || "user";
   const [isBookingOpen, setIsBookingOpen] = useState(
-    location.pathname.includes("-booking") || location.pathname.includes("/manage-")
+    location.pathname.includes("-booking") || 
+    location.pathname.includes("/manage-vehicles") || 
+    location.pathname.includes("/manage-classrooms") || 
+    location.pathname.includes("/manage-maintenance")
+  );
+  const [isCoursesOpen, setIsCoursesOpen] = useState(
+    location.pathname.includes("/manage-courses") || 
+    location.pathname.includes("/manage-batches") || 
+    location.pathname.includes("/manage-lecturers")
   );
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(
     location.pathname.includes("/manage-users")
@@ -46,7 +57,7 @@ export default function DashboardLayout({ children }: any) {
     navigate("/");
   };
 
-  const bookingSubItems = [
+  const bookingSubItems: any[] = [
     { path: "/auditorium-booking", label: "Auditorium Booking", icon: MonitorPlay, permission: 'canBookAuditorium' },
     { path: "/classroom-booking", label: "Classroom Booking", icon: BookOpen, permission: 'canBookClassroom' },
     { path: "/transport-booking", label: "Transport Booking", icon: Bus, permission: 'canBookTransport' },
@@ -144,7 +155,71 @@ export default function DashboardLayout({ children }: any) {
           )}
         </div>
 
-        {/* Student Management Parent */}
+
+        {/* Course Management Section (Admin & Officer Only) */}
+        {(userRole === "admin" || userRole === "officer") && (
+          <div className="space-y-1">
+            <button
+              onClick={() => setIsCoursesOpen(!isCoursesOpen)}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                isCoursesOpen && (
+                  location.pathname.includes("/manage-courses") || 
+                  location.pathname.includes("/manage-batches") || 
+                  location.pathname.includes("/manage-lecturers")
+                )
+                  ? "bg-slate-800/50 text-white"
+                  : "hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <GraduationCap className={`w-5 h-5 ${isCoursesOpen ? "text-brand-400" : "text-slate-400 group-hover:text-brand-400"}`} />
+                <span className="font-medium text-sm">Course Management</span>
+              </div>
+              {isCoursesOpen ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+            </button>
+
+            {isCoursesOpen && (
+              <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
+                <Link
+                  to="/manage-courses"
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+                    location.pathname === "/manage-courses"
+                      ? "bg-brand-600/10 text-brand-400 font-semibold"
+                      : "hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span className="text-xs">Courses</span>
+                </Link>
+                <Link
+                  to="/manage-batches"
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+                    location.pathname === "/manage-batches"
+                      ? "bg-brand-600/10 text-brand-400 font-semibold"
+                      : "hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span className="text-xs">Batches</span>
+                </Link>
+                <Link
+                  to="/manage-lecturers"
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+                    location.pathname === "/manage-lecturers"
+                      ? "bg-brand-600/10 text-brand-400 font-semibold"
+                      : "hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="text-xs">Lecturers</span>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+
+{/* Student Management Parent */}
         <div className="space-y-1">
           <button
             onClick={() => setIsStudentManagementOpen(!isStudentManagementOpen)}
@@ -164,9 +239,11 @@ export default function DashboardLayout({ children }: any) {
           {isStudentManagementOpen && (
             <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
               {[
-                { path: "/student-management/students", label: "Student List", icon: Users },
                 { path: "/student-management/enrollment", label: "Enrollment", icon: ClipboardCheck },
+                { path: "/student-management/verification", label: "Verification", icon: ShieldCheck },
                 { path: "/student-management/payment", label: "Payment", icon: CreditCard },
+                { path: "/student-management/registration", label: "Registration", icon: Award },
+                { path: "/student-management/students", label: "All Students", icon: Users },
               ].map((item) => {
                 const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
                 const Icon = item.icon;

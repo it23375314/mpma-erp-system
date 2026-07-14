@@ -16,6 +16,9 @@ import NewClassroomBooking from "./modules/booking/pages/NewClassroomBooking";
 import EditClassroomBooking from "./modules/booking/pages/EditClassroomBooking";
 import ManageMaintenance from "./modules/booking/pages/ManageMaintenance";
 import ManageUsers from "./modules/booking/pages/ManageUsers";
+import ManageCourses from "./modules/courses/pages/ManageCourses";
+import ManageBatches from "./modules/courses/pages/ManageBatches";
+import ManageLecturers from "./modules/courses/pages/ManageLecturers";
 
 // Student Management Imports
 import ManageEnrollment from "./modules/students/pages/ManageEnrollment";
@@ -24,6 +27,11 @@ import StudentList from "./modules/students/pages/StudentList";
 import StudentProfile from "./modules/students/pages/StudentProfile";
 import StudentPayment from "./modules/students/pages/StudentPayment";
 import GovPayDemo from "./pages/student/GovPayDemo";
+
+// New Student Workflow Imports
+import VerificationList from "./modules/students/pages/VerificationList";
+import VerificationDetail from "./modules/students/pages/VerificationDetail";
+import RegistrationList from "./modules/students/pages/RegistrationList";
 
 function App() {
   return (
@@ -46,6 +54,11 @@ function App() {
       <Route path="/manage-maintenance" element={<ManageMaintenance />} />
       <Route path="/manage-users" element={<ManageUsers />} />
 
+      {/* Course Management Module Routes */}
+      <Route path="/manage-courses" element={<ManageCourses />} />
+      <Route path="/manage-batches" element={<ManageBatches />} />
+      <Route path="/manage-lecturers" element={<ManageLecturers />} />
+
       {/* Student Management Routes */}
       <Route path="/student-management/students" element={<StudentList />} />
       <Route path="/student-management/students/:id" element={<StudentProfile />} />
@@ -53,6 +66,11 @@ function App() {
       <Route path="/student-management/enrollment/new" element={<StudentEnrollment />} />
       <Route path="/student-management/payment" element={<StudentPayment />} />
       <Route path="/student-management/payment/govpay-demo" element={<GovPayDemo />} />
+
+      {/* New Student Workflow Routes */}
+      <Route path="/student-management/verification" element={<VerificationList />} />
+      <Route path="/student-management/verification/:id" element={<VerificationDetail />} />
+      <Route path="/student-management/registration" element={<RegistrationList />} />
     </Routes>
   );
 }

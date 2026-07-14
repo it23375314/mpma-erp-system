@@ -3,8 +3,15 @@ import { Classroom } from './Classroom';
 import { Vehicle } from './Vehicle';
 import { ClassroomBooking } from './ClassroomBooking';
 import { TransportBooking } from './TransportBooking';
+import { Course } from './Course';
+import { Batch } from './Batch';
+import { Lecturer } from './Lecturer';
+import { BatchLecturer } from './BatchLecturer';
 import StudentPayment from './StudentPayment';
 import Student from './Student';
+import ApplicationDocument from './ApplicationDocument';
+import VerificationChecklist from './VerificationChecklist';
+
 
 export const setupAssociations = () => {
   // Classroom & Bookings
@@ -19,8 +26,30 @@ export const setupAssociations = () => {
   Maintenance.belongsTo(Classroom, { foreignKey: 'facilityId', as: 'classroom', constraints: false });
   Maintenance.belongsTo(Vehicle, { foreignKey: 'facilityId', as: 'vehicle', constraints: false });
 
+  // Course & Batch associations
+  Course.hasMany(Batch, { foreignKey: 'courseId', as: 'batches' });
+  Batch.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
+
+  // Batch & Lecturer many-to-many associations
+  Batch.belongsToMany(Lecturer, { through: BatchLecturer, foreignKey: 'batchId', otherKey: 'lecturerId', as: 'lecturers' });
+  Lecturer.belongsToMany(Batch, { through: BatchLecturer, foreignKey: 'lecturerId', otherKey: 'batchId', as: 'batches' });
+
+  // Direct associations for junction query convenience
+  Batch.hasMany(BatchLecturer, { foreignKey: 'batchId', as: 'assignments' });
+  BatchLecturer.belongsTo(Batch, { foreignKey: 'batchId', as: 'batch' });
+
+  Lecturer.hasMany(BatchLecturer, { foreignKey: 'lecturerId', as: 'assignments' });
+  BatchLecturer.belongsTo(Lecturer, { foreignKey: 'lecturerId', as: 'lecturer' });
+
   // StudentPayment & Student associations
-  // A student can have many payments; each payment belongs to one student.
   Student.hasMany(StudentPayment, { foreignKey: 'student_id', as: 'payments', constraints: false });
   StudentPayment.belongsTo(Student, { foreignKey: 'student_id', as: 'student', constraints: false });
+
+  // ApplicationDocument & Student associations
+  Student.hasMany(ApplicationDocument, { foreignKey: 'student_id', as: 'documents', constraints: false });
+  ApplicationDocument.belongsTo(Student, { foreignKey: 'student_id', as: 'student', constraints: false });
+
+  // VerificationChecklist & Student associations
+  Student.hasOne(VerificationChecklist, { foreignKey: 'student_id', as: 'checklist', constraints: false });
+  VerificationChecklist.belongsTo(Student, { foreignKey: 'student_id', as: 'student', constraints: false });
 };

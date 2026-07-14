@@ -12,11 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteStudent = exports.updateStudent = exports.getStudentById = exports.getStudentsPdfReport = exports.getStudents = exports.enrollStudent = void 0;
+exports.deleteStudent = exports.updateStudent = exports.getStudentById = exports.getStudentsPdfReport = exports.getStudents = exports.enrollStudent = exports.updateApplicationStudent = exports.rejectApplication = exports.requestCorrection = exports.approveAndSendPaymentRequest = exports.getApplicationById = exports.getPendingApplications = exports.submitApplication = void 0;
 const sequelize_1 = require("sequelize");
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const Student_1 = __importDefault(require("../models/Student"));
 const StudentPayment_1 = __importDefault(require("../models/StudentPayment"));
+const ApplicationDocument_1 = __importDefault(require("../models/ApplicationDocument"));
 const paymentHelpers_1 = require("../utils/paymentHelpers");
 const emailService_1 = require("../services/emailService");
 const DEFAULT_REGISTRATION_FEE = 2500;
@@ -133,6 +134,439 @@ const getFilteredStudents = (query) => __awaiter(void 0, void 0, void 0, functio
     }
     return { students: studentsWithPayments, appliedFilters: filters.appliedFilters };
 });
+// ============================================================
+// 1. STUDENT APPLICATION SUBMISSION
+// POST /api/students/register
+// ============================================================
+const submitApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { firstName, lastName, email, phone, dob, gender, address, course, batch, studentCategory, nic, idNumber, passport, passportNumber, } = req.body;
+        // Check if student with this email already exists
+        const existingStudent = yield Student_1.default.findOne({ where: { email } });
+        if (existingStudent) {
+            return res.status(400).json({
+                success: false,
+                message: 'A student with this email already exists.',
+            });
+        }
+        // Create student with APPLIED status and PENDING_REVIEW application_status
+        const student = yield Student_1.default.create({
+            firstName,
+            lastName,
+            email,
+            phone,
+            dob,
+            gender,
+            address,
+            course,
+            batch,
+            studentCategory: studentCategory || null,
+            nic: nic || idNumber || null,
+            passport: passport || passportNumber || null,
+            status: 'Applied',
+            application_status: 'PENDING_REVIEW',
+            payment_status_type: 'NOT_REQUESTED',
+            enrollmentDate: new Date().toISOString().split('T')[0],
+        });
+        res.status(201).json({
+            success: true,
+            message: 'Student application submitted successfully. Awaiting admin review.',
+            student: {
+                id: student.id,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                email: student.email,
+                status: student.status,
+                application_status: student.application_status,
+                payment_status_type: student.payment_status_type,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Submit application error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error',
+        });
+    }
+});
+exports.submitApplication = submitApplication;
+// ============================================================
+// 2. GET PENDING APPLICATIONS (Admin View)
+// GET /api/students/pending
+// ============================================================
+const getPendingApplications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const students = yield Student_1.default.findAll({
+            where: { application_status: 'PENDING_REVIEW' },
+            include: [
+                {
+                    model: ApplicationDocument_1.default,
+                    as: 'documents',
+                    separate: true,
+                },
+            ],
+            order: [['createdAt', 'DESC']],
+        });
+        res.json({
+            success: true,
+            count: students.length,
+            students: students.map((s) => (Object.assign(Object.assign({}, s.toJSON()), { applicationStatus: s.application_status }))),
+        });
+    }
+    catch (error) {
+        console.error('Get pending applications error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error',
+        });
+    }
+});
+exports.getPendingApplications = getPendingApplications;
+// ============================================================
+// 3. GET APPLICATION DETAILS (Admin View)
+// GET /api/students/application/:id
+// ============================================================
+const getApplicationById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const student = yield Student_1.default.findByPk(id, {
+            include: [
+                {
+                    model: ApplicationDocument_1.default,
+                    as: 'documents',
+                    separate: true,
+                },
+                {
+                    model: StudentPayment_1.default,
+                    as: 'payments',
+                    separate: true,
+                    order: [['created_at', 'DESC']],
+                },
+            ],
+        });
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Application not found',
+            });
+        }
+        res.json({
+            success: true,
+            student: student.toJSON(),
+        });
+    }
+    catch (error) {
+        console.error('Get application error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error',
+        });
+    }
+});
+exports.getApplicationById = getApplicationById;
+// ============================================================
+// 4. ADMIN APPROVAL & SEND PAYMENT REQUEST
+// PATCH /api/students/:id/approve-payment
+// ============================================================
+const approveAndSendPaymentRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { registration_fee: registrationFeeInput, course_fee: courseFeeInput, } = req.body;
+        const student = yield Student_1.default.findByPk(id);
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found',
+            });
+        }
+        // Validate student is in PENDING_REVIEW status
+        if (student.application_status !== 'PENDING_REVIEW') {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot approve. Current application status: ${student.application_status}`,
+            });
+        }
+        // Set fees
+        const registration_fee = registrationFeeInput != null && registrationFeeInput !== ''
+            ? Number(registrationFeeInput)
+            : DEFAULT_REGISTRATION_FEE;
+        const course_fee = courseFeeInput != null && courseFeeInput !== ''
+            ? Number(courseFeeInput)
+            : DEFAULT_COURSE_FEE;
+        const full_amount_payable = (0, paymentHelpers_1.formatAmount)(registration_fee + course_fee);
+        const payment_reference = (0, paymentHelpers_1.generatePaymentReference)(student.id);
+        // Create StudentPayment record with PENDING status
+        const payment = yield StudentPayment_1.default.create({
+            student_id: student.id,
+            course_batch_id: null,
+            registration_fee,
+            course_fee,
+            full_amount_payable,
+            payment_reference,
+            payment_status: 'PENDING',
+            payment_completed: false,
+            payment_method: 'GOVPAY',
+        });
+        // Update student status
+        yield student.update({
+            application_status: 'APPROVED',
+            status: 'Qualified',
+            payment_status_type: 'PENDING',
+            approved_at: new Date(),
+        });
+        // Send qualification & payment email
+        const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+        const paymentPageUrl = `${frontendUrl}/student-management/payment?ref=${encodeURIComponent(payment_reference)}`;
+        const studentName = `${student.firstName} ${student.lastName}`.trim();
+        let emailSent = false;
+        try {
+            yield (0, emailService_1.sendQualificationPaymentEmail)(student.email, {
+                studentName,
+                courseName: student.course,
+                batchName: student.batch,
+                paymentReference: payment_reference,
+                registrationFee: registration_fee,
+                courseFee: course_fee,
+                totalAmount: full_amount_payable,
+                paymentPageUrl,
+            });
+            emailSent = true;
+        }
+        catch (emailError) {
+            console.error('Failed to send qualification payment email:', (emailError === null || emailError === void 0 ? void 0 : emailError.message) || emailError);
+        }
+        res.json({
+            success: true,
+            message: emailSent
+                ? 'Application approved, payment record created, and qualification email sent successfully'
+                : 'Application approved and payment record created, but email could not be sent',
+            student: student.toJSON(),
+            payment: payment.toJSON(),
+            emailSent,
+        });
+    }
+    catch (error) {
+        console.error('Approve and send payment error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error',
+        });
+    }
+});
+exports.approveAndSendPaymentRequest = approveAndSendPaymentRequest;
+// ============================================================
+// 5. ADMIN REQUEST CORRECTION
+// PATCH /api/students/:id/request-correction
+// ============================================================
+const requestCorrection = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { correctionDetails } = req.body;
+        if (!correctionDetails || typeof correctionDetails !== 'string' || !correctionDetails.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'correctionDetails is required',
+            });
+        }
+        const student = yield Student_1.default.findByPk(id);
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found',
+            });
+        }
+        if (student.application_status !== 'PENDING_REVIEW') {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot request correction. Current application status: ${student.application_status}`,
+            });
+        }
+        // Update student status
+        yield student.update({
+            application_status: 'CORRECTION_REQUESTED',
+            admin_notes: correctionDetails,
+        });
+        // Send correction request email
+        const studentName = `${student.firstName} ${student.lastName}`.trim();
+        let emailSent = false;
+        try {
+            yield (0, emailService_1.sendCorrectionRequestEmail)(student.email, {
+                studentName,
+                courseName: student.course,
+                correctionDetails,
+            });
+            emailSent = true;
+        }
+        catch (emailError) {
+            console.error('Failed to send correction request email:', (emailError === null || emailError === void 0 ? void 0 : emailError.message) || emailError);
+        }
+        res.json({
+            success: true,
+            message: emailSent
+                ? 'Correction request sent to student successfully'
+                : 'Correction request marked, but email could not be sent',
+            student: student.toJSON(),
+            emailSent,
+        });
+    }
+    catch (error) {
+        console.error('Request correction error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error',
+        });
+    }
+});
+exports.requestCorrection = requestCorrection;
+// ============================================================
+// 6. ADMIN REJECT APPLICATION
+// PATCH /api/students/:id/reject
+// ============================================================
+const rejectApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { rejectionReason } = req.body;
+        if (!rejectionReason || typeof rejectionReason !== 'string' || !rejectionReason.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'rejectionReason is required',
+            });
+        }
+        const student = yield Student_1.default.findByPk(id);
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found',
+            });
+        }
+        if (student.application_status !== 'PENDING_REVIEW') {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot reject. Current application status: ${student.application_status}`,
+            });
+        }
+        // Update student status
+        yield student.update({
+            application_status: 'REJECTED',
+            status: 'Pending',
+            admin_notes: rejectionReason,
+        });
+        // Send rejection email
+        const studentName = `${student.firstName} ${student.lastName}`.trim();
+        let emailSent = false;
+        try {
+            yield (0, emailService_1.sendApplicationRejectionEmail)(student.email, {
+                studentName,
+                courseName: student.course,
+                rejectionReason,
+            });
+            emailSent = true;
+        }
+        catch (emailError) {
+            console.error('Failed to send rejection email:', (emailError === null || emailError === void 0 ? void 0 : emailError.message) || emailError);
+        }
+        res.json({
+            success: true,
+            message: emailSent
+                ? 'Application rejected and notification sent to student'
+                : 'Application rejected, but notification email could not be sent',
+            student: student.toJSON(),
+            emailSent,
+        });
+    }
+    catch (error) {
+        console.error('Reject application error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error',
+        });
+    }
+});
+exports.rejectApplication = rejectApplication;
+// ============================================================
+// 7. ADMIN UPDATE APPLICATION STUDENT DETAILS
+// PATCH /api/students/:id/update-details (Admin Review Only)
+// ============================================================
+const updateApplicationStudent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const student = yield Student_1.default.findByPk(id);
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found',
+            });
+        }
+        // Only allow updates while in PENDING_REVIEW or CORRECTION_REQUESTED
+        const allowedStatuses = ['PENDING_REVIEW', 'CORRECTION_REQUESTED'];
+        if (!allowedStatuses.includes(student.application_status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot update student details in ${student.application_status} status. Only pending applications can be edited.`,
+            });
+        }
+        const allowedFields = [
+            'firstName',
+            'lastName',
+            'email',
+            'phone',
+            'dob',
+            'gender',
+            'address',
+            'course',
+            'batch',
+            'studentCategory',
+            'nic',
+            'passport',
+        ];
+        const updates = {};
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updates[field] = req.body[field];
+            }
+        }
+        if (req.body.idNumber !== undefined && updates.nic === undefined) {
+            updates.nic = req.body.idNumber;
+        }
+        if (req.body.passportNumber !== undefined && updates.passport === undefined) {
+            updates.passport = req.body.passportNumber;
+        }
+        // Validate email uniqueness
+        if (updates.email && updates.email !== student.email) {
+            const existingStudent = yield Student_1.default.findOne({
+                where: {
+                    email: updates.email,
+                    id: { [sequelize_1.Op.ne]: id },
+                },
+            });
+            if (existingStudent) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'A student with this email already exists.',
+                });
+            }
+        }
+        yield student.update(updates);
+        res.json({
+            success: true,
+            message: 'Student details updated successfully',
+            student: student.toJSON(),
+        });
+    }
+    catch (error) {
+        console.error('Update application student error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error',
+        });
+    }
+});
+exports.updateApplicationStudent = updateApplicationStudent;
+// ============================================================
+// LEGACY ENDPOINTS (Kept for backward compatibility)
+// ============================================================
+// Legacy: Enroll Student (still supports old workflow if needed)
 const enrollStudent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { firstName, lastName, email, phone, dob, gender, address, course, batch, studentCategory, nic, idNumber, passport, passportNumber, registration_fee: registrationFeeInput, course_fee: courseFeeInput, } = req.body;
@@ -154,6 +588,8 @@ const enrollStudent = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             nic: nic || idNumber || null,
             passport: passport || passportNumber || null,
             status: 'Enrolled',
+            application_status: null,
+            payment_status_type: 'PENDING',
         });
         const registration_fee = registrationFeeInput != null && registrationFeeInput !== ''
             ? Number(registrationFeeInput)
@@ -320,6 +756,11 @@ const getStudentById = (req, res) => __awaiter(void 0, void 0, void 0, function*
                     as: 'payments',
                     separate: true,
                     order: [['created_at', 'DESC']],
+                },
+                {
+                    model: ApplicationDocument_1.default,
+                    as: 'documents',
+                    separate: true,
                 },
             ],
         });
