@@ -4,8 +4,6 @@ import { toast } from "react-toastify";
 import {
   Award,
   Search,
-  User,
-  BookOpen,
   Download,
   ClipboardCheck,
   Calendar,

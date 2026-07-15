@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../../layouts/DashboardLayout";
 import {
@@ -29,11 +29,8 @@ import { fetchApi } from "../../../utils/api";
 
 type StudentCategory = "SLPA Employee" | "Sri Lankan Student" | "Non-Sri Lankan Student";
 
-interface EnrollmentDocument {
-  name: string;
-  size: string;
-  type: string;
-}
+interface CourseOption { id: string; courseCode: string; courseName: string; }
+interface BatchOption { id: string; batchCode: string; startDate: string; }
 
 const StudentEnrollment = () => {
   const navigate = useNavigate();
@@ -65,6 +62,9 @@ const StudentEnrollment = () => {
     // Step 4: Course
     course: "",
     batch: "",
+    courseId: "",
+    batchId: "",
+    serviceNumber: "",
     registrationDate: new Date().toISOString().split('T')[0],
 
     // Step 5: Additional Details
@@ -75,11 +75,26 @@ const StudentEnrollment = () => {
     slpaPosition: "",
 
     // Step 6: Documents
-    documents: [] as EnrollmentDocument[]
+    documents: [] as File[]
   });
 
   const [employeeSearchId, setEmployeeSearchId] = useState("");
   const [isSearchingEmployee, setIsSearchingEmployee] = useState(false);
+  const [courses, setCourses] = useState<CourseOption[]>([]);
+  const [batches, setBatches] = useState<BatchOption[]>([]);
+  const [courseLoading, setCourseLoading] = useState(false);
+  const [applicationNumber, setApplicationNumber] = useState("");
+
+  useEffect(() => {
+    setCourseLoading(true);
+    fetchApi('/public/courses').then((data) => setCourses(data as CourseOption[])).catch((e) => toast.error(e.message)).finally(() => setCourseLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!formData.courseId) { setBatches([]); return; }
+    setCourseLoading(true);
+    fetchApi(`/public/courses/${formData.courseId}/batches`).then((data) => setBatches(data as BatchOption[])).catch((e) => toast.error(e.message)).finally(() => setCourseLoading(false));
+  }, [formData.courseId]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -112,6 +127,8 @@ const StudentEnrollment = () => {
       passportNumber: studentCategory === "Non-Sri Lankan Student" ? prev.passportNumber : "",
       nationality: studentCategory === "Non-Sri Lankan Student" ? "" : "Sri Lankan",
       countryOfOrigin: studentCategory === "Non-Sri Lankan Student" ? "" : "Sri Lanka",
+      fullName: "", firstName: "", lastName: "", dob: "", email: "", phone: "",
+      serviceNumber: "", epfNumber: "", department: "", slpaPosition: "",
     }));
     setEmployeeSearchId("");
     setErrors({});
@@ -142,8 +159,11 @@ const StudentEnrollment = () => {
       if (!formData.phone) newErrors.phone = "Phone number is required";
       if (!formData.address) newErrors.address = "Address is required";
       if (!formData.email) newErrors.email = "Email is required";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Enter a valid email";
+      if (formData.phone && !/^[+\d][\d\s()-]{6,19}$/.test(formData.phone)) newErrors.phone = "Enter a valid phone number";
     } else if (step === 4) {
-      if (!formData.course) newErrors.course = "Course selection is required";
+      if (!formData.courseId) newErrors.course = "Course selection is required";
+      if (!formData.batchId) newErrors.batch = "Batch selection is required";
     }
 
     setErrors(newErrors);
@@ -162,30 +182,25 @@ const StudentEnrollment = () => {
     if (currentStep > 1) setCurrentStep(prev => prev - 1);
   };
 
-  const handleEmployeeSearch = () => {
+  const handleEmployeeSearch = async () => {
     if (!employeeSearchId) {
       toast.warning("Please enter Service Number or NIC");
       return;
     }
     setIsSearchingEmployee(true);
-    // Mock API call
-    setTimeout(() => {
+    try {
+      const result = await fetchApi(`/public/slpa-employees/search?query=${encodeURIComponent(employeeSearchId.trim())}`) as { employee: any };
+      const employee = result.employee;
       setFormData(prev => ({
         ...prev,
-        fullName: "John Doe (SLPA Employee)",
-        firstName: "John",
-        lastName: "Doe",
-        idNumber: employeeSearchId.match(/^\d{10}$/) ? employeeSearchId : "197512345678",
-        email: "john.doe@slpa.lk",
-        phone: "0771234567",
-        dob: "1985-06-15",
-        gender: "Male",
-        epfNumber: "EPF-" + Math.floor(1000 + Math.random() * 9000),
-        department: "Operations",
+        fullName: employee.fullName, firstName: employee.firstName, lastName: employee.lastName,
+        idNumber: employee.nic, email: employee.email || '', phone: employee.phone || '', dob: employee.dob,
+        gender: employee.gender, serviceNumber: employee.serviceNumber, epfNumber: employee.epfNumber,
+        department: employee.department, slpaPosition: employee.position,
       }));
-      setIsSearchingEmployee(false);
-      toast.success("Employee details retrieved successfully!");
-    }, 1200);
+      toast.success("Employee record verified.");
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Employee search failed'); }
+    finally { setIsSearchingEmployee(false); }
   };
 
   const handleSaveDraft = async () => {
@@ -201,7 +216,6 @@ const StudentEnrollment = () => {
 
     setLoading(true);
     try {
-      // Mapping wizard data to backend Student model
       const names = formData.fullName.split(" ");
       const firstName = names[0];
       const lastName = names.slice(1).join(" ") || " ";
@@ -214,24 +228,25 @@ const StudentEnrollment = () => {
         dob: formData.dob,
         gender: formData.gender,
         address: formData.address,
-        course: formData.course,
-        batch: formData.batch || "2024 Fall",
+        fullName: formData.fullName, courseId: formData.courseId, batchId: formData.batchId,
         studentCategory: formData.studentCategory,
         idNumber: formData.idNumber,
         passportNumber: formData.passportNumber,
+        nationality: formData.nationality, countryOfOrigin: formData.countryOfOrigin,
+        companyName: formData.companyName, outsidePosition: formData.outsidePosition,
+        serviceNumber: formData.serviceNumber, epfNumber: formData.epfNumber, department: formData.department,
+        slpaPosition: formData.slpaPosition, enrollmentType: 'ADMIN_DIRECT',
       };
-
+      const payload = new FormData();
+      Object.entries(submitData).forEach(([key, value]) => payload.append(key, value));
+      formData.documents.forEach(file => payload.append('documents', file));
       const response = await fetchApi('/students/register', {
         method: 'POST',
-        body: JSON.stringify(submitData)
-      }) as { message?: string; success?: boolean; error?: string };
+        body: payload
+      }) as { message?: string; success?: boolean; applicationNumber?: string; fields?: Record<string,string> };
 
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      
-      toast.success("Application submitted successfully! It is now pending admin verification.");
-      navigate("/student-management/enrollment");
+      setApplicationNumber(response.applicationNumber || '');
+      toast.success(`Application submitted: ${response.applicationNumber}`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Enrollment failed.";
       toast.error(message);
@@ -244,11 +259,11 @@ const StudentEnrollment = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files).map(file => ({
-        name: file.name,
-        size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
-        type: file.type
-      }));
+      const allowed = new Set(['application/pdf', 'image/jpeg', 'image/png']);
+      const newFiles = Array.from(e.target.files).filter(file => {
+        if (!allowed.has(file.type) || file.size > 5 * 1024 * 1024) { toast.error(`${file.name}: use PDF/JPG/PNG up to 5 MB`); return false; }
+        return true;
+      });
       setFormData(prev => ({ ...prev, documents: [...prev.documents, ...newFiles] }));
     }
   };
@@ -415,11 +430,27 @@ const StudentEnrollment = () => {
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700 ml-1">Service Number</label>
-                            <input value={formData.epfNumber} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                            <input value={formData.serviceNumber} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700 ml-1">Department</label>
                             <input value={formData.department} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-700 ml-1">EPF Number</label>
+                            <input value={formData.epfNumber} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-700 ml-1">NIC</label>
+                            <input value={formData.idNumber} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-700 ml-1">Position</label>
+                            <input value={formData.slpaPosition} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-700 ml-1">Gender</label>
+                            <input value={formData.gender} readOnly className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-[1.25rem] text-sm font-semibold text-slate-500" />
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700 ml-1">Date of Birth</label>
@@ -628,32 +659,32 @@ const StudentEnrollment = () => {
                       <div className="relative">
                         <Info className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                         <select
-                          name="course"
-                          value={formData.course}
-                          onChange={handleInputChange}
+                          name="courseId"
+                          value={formData.courseId}
+                          disabled={courseLoading}
+                          onChange={(e) => { const selected = courses.find(c => c.id === e.target.value); setFormData(prev => ({ ...prev, courseId: e.target.value, course: selected?.courseName || '', batchId: '', batch: '' })); }}
                           className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all appearance-none cursor-pointer"
                         >
                           <option value="">Choose a course</option>
-                          <option value="ICT">Computer Science</option>
-                          <option value="Business">Business Admin</option>
-                          <option value="Eng">Engineering</option>
+                          {courses.map(course => <option key={course.id} value={course.id}>{course.courseCode} — {course.courseName}</option>)}
                         </select>
                       </div>
                       {errors.course && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.course}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 ml-1">Batch</label>
+                      <label className="text-sm font-bold text-slate-700 ml-1">Batch <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input
-                          name="batch"
-                          value={formData.batch}
-                          onChange={handleInputChange}
+                        <select
+                          name="batchId"
+                          value={formData.batchId}
+                          disabled={!formData.courseId || courseLoading}
+                          onChange={(e) => { const selected = batches.find(b => b.id === e.target.value); setFormData(prev => ({ ...prev, batchId: e.target.value, batch: selected?.batchCode || '' })); }}
                           className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:bg-white focus:border-brand-500 outline-none transition-all"
-                          placeholder="e.g. 2024 Fall"
-                        />
+                        ><option value="">Choose an available batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.batchCode} — {batch.startDate}</option>)}</select>
                       </div>
+                      {errors.batch && <p className="text-xs text-red-500 mt-1 ml-1 font-bold">{errors.batch}</p>}
                     </div>
                   </div>
                 </div>
@@ -680,7 +711,7 @@ const StudentEnrollment = () => {
                           <input
                             name="epfNumber"
                             value={formData.epfNumber}
-                            onChange={handleInputChange}
+                            readOnly
                             className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
                           />
                         </div>
@@ -689,9 +720,13 @@ const StudentEnrollment = () => {
                           <input
                             name="department"
                             value={formData.department}
-                            onChange={handleInputChange}
+                            readOnly
                             className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold focus:border-brand-500 outline-none transition-all shadow-sm"
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700 ml-1">SLPA Position</label>
+                          <input value={formData.slpaPosition} readOnly className="w-full px-4 py-4 bg-white border-2 border-transparent rounded-[1.25rem] text-sm font-semibold shadow-sm" />
                         </div>
                       </div>
                     ) : (
@@ -742,6 +777,7 @@ const StudentEnrollment = () => {
                     <input
                       type="file"
                       multiple
+                      accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                       className="hidden"
                       ref={fileInputRef}
                       onChange={handleFileChange}
@@ -764,7 +800,7 @@ const StudentEnrollment = () => {
                             <FileText className="w-6 h-6 text-brand-600" />
                             <div>
                               <p className="text-sm font-bold text-slate-800 truncate max-w-[200px]">{doc.name}</p>
-                              <p className="text-[10px] text-slate-400">{doc.size}</p>
+                              <p className="text-[10px] text-slate-400">{(doc.size / 1024 / 1024).toFixed(2)} MB</p>
                             </div>
                           </div>
                           <button
@@ -783,6 +819,7 @@ const StudentEnrollment = () => {
             </div>
 
             {/* Action Bar */}
+            {applicationNumber && <div className="mx-10 mb-4 p-5 rounded-2xl bg-emerald-50 text-emerald-800 font-bold">Application submitted successfully. Application number: {applicationNumber}</div>}
             <div className="px-10 py-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between sticky bottom-0 z-10">
               <div className="flex gap-4">
                 {currentStep > 1 && (

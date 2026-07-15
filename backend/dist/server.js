@@ -29,15 +29,17 @@ const batchRoutes_1 = __importDefault(require("./routes/batchRoutes"));
 const lecturerRoutes_1 = __importDefault(require("./routes/lecturerRoutes"));
 const studentRoutes_1 = __importDefault(require("./routes/studentRoutes"));
 const studentPaymentRoutes_1 = __importDefault(require("./routes/studentPaymentRoutes"));
-const Student_1 = __importDefault(require("./models/Student"));
-const StudentPayment_1 = __importDefault(require("./models/StudentPayment"));
 const associations_1 = require("./models/associations");
+const publicCourseRoutes_1 = __importDefault(require("./routes/publicCourseRoutes"));
+const publicApplicationRoutes_1 = __importDefault(require("./routes/publicApplicationRoutes"));
+require("./models/SlpaEmployee");
 // Set up model relationships
 (0, associations_1.setupAssociations)();
 const app = (0, express_1.default)();
 // Middleware
 app.use((0, cors_1.default)());
-app.use(express_1.default.json());
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 // Basic Route
 app.get('/', (req, res) => {
     res.send('MPMA ERP API is running...');
@@ -56,11 +58,16 @@ app.use('/api/batches', batchRoutes_1.default);
 app.use('/api/lecturers', lecturerRoutes_1.default);
 app.use('/api/students', studentRoutes_1.default);
 app.use('/api/student-payments', studentPaymentRoutes_1.default);
+app.use('/api/public/courses', publicCourseRoutes_1.default);
+app.use('/api/public', publicApplicationRoutes_1.default);
 // Error Handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(err.status || 500).json({
-        message: err.message || 'Internal Server Error'
+    const uploadError = (err === null || err === void 0 ? void 0 : err.name) === 'MulterError' || String((err === null || err === void 0 ? void 0 : err.message) || '').includes('PDF, JPG');
+    if (!uploadError)
+        console.error(err.stack);
+    res.status(uploadError ? 400 : (err.status || 500)).json({
+        success: false,
+        message: uploadError ? (err.code === 'LIMIT_FILE_SIZE' ? 'Each document must be 5 MB or smaller.' : err.message) : 'Internal Server Error'
     });
 });
 const PORT = process.env.PORT || 5001;
@@ -68,9 +75,9 @@ const PORT = process.env.PORT || 5001;
 const init = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield (0, db_1.default)();
-        // Sync models
-        yield Student_1.default.sync({ alter: true });
-        yield StudentPayment_1.default.sync({ alter: true });
+        // connectDB() already synchronizes all registered models. Running
+        // per-model alter syncs here causes Sequelize/MySQL to create duplicate
+        // unique indexes on every startup until MySQL reaches its index limit.
         console.log("Database models synchronized.");
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);

@@ -10,6 +10,7 @@ const getTransporter = (): Transporter => {
     const port = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587', 10);
     const user = process.env.SMTP_USER || process.env.EMAIL_USER;
     const pass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').replace(/\s/g, '');
+    const configuredSecure = process.env.SMTP_SECURE || process.env.EMAIL_SECURE;
 
     if (!user || !pass) {
       throw new Error('SMTP credentials are not configured. Set SMTP_USER and SMTP_PASS in .env');
@@ -18,8 +19,11 @@ const getTransporter = (): Transporter => {
     transporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465,
+      secure: configuredSecure ? configuredSecure.toLowerCase() === 'true' : port === 465,
       auth: { user, pass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 30000,
     });
   }
 
@@ -28,6 +32,27 @@ const getTransporter = (): Transporter => {
 
 const fromAddress = () =>
   process.env.SMTP_FROM || process.env.SMTP_USER || process.env.EMAIL_USER;
+
+const TRANSIENT_SMTP_CODES = new Set(['ENOTFOUND', 'EAI_AGAIN', 'ETIMEDOUT', 'ECONNECTION', 'ECONNRESET']);
+
+const sendMailWithRetry = async (mailOptions: any) => {
+  let lastError: any;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await getTransporter().sendMail(mailOptions);
+    } catch (error: any) {
+      lastError = error;
+      if (!TRANSIENT_SMTP_CODES.has(error?.code) || attempt === 3) throw error;
+
+      // Discard the failed connection/DNS cache and retry with a fresh
+      // transport. Delays are short and bounded to avoid blocking requests.
+      transporter?.close();
+      transporter = null;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+    }
+  }
+  throw lastError;
+};
 
 const formatCurrency = (amount: number): string => {
   return `Rs. ${amount.toLocaleString('en-LK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
@@ -190,7 +215,7 @@ export const sendEnrollmentPaymentEmail = async (
     subject: 'MPMA Student Enrollment Payment Details',
     html: buildEnrollmentPaymentHtml(data),
   };
-  const info = await getTransporter().sendMail(mailOptions);
+  const info = await sendMailWithRetry(mailOptions);
   console.log(`Enrollment payment email sent to ${toEmail} (messageId: ${info.messageId})`);
 };
 
@@ -204,7 +229,7 @@ export const sendQualificationPaymentEmail = async (
     subject: '🎉 MPMA Application Approved – Please Complete Your Payment',
     html: buildQualificationPaymentHtml(data),
   };
-  const info = await getTransporter().sendMail(mailOptions);
+  const info = await sendMailWithRetry(mailOptions);
   console.log(`Qualification payment email sent to ${toEmail} (messageId: ${info.messageId})`);
 };
 
@@ -218,7 +243,7 @@ export const sendCorrectionRequestEmail = async (
     subject: 'MPMA Application – Correction Required',
     html: buildCorrectionRequestHtml(data),
   };
-  const info = await getTransporter().sendMail(mailOptions);
+  const info = await sendMailWithRetry(mailOptions);
   console.log(`Correction request email sent to ${toEmail} (messageId: ${info.messageId})`);
 };
 
@@ -232,6 +257,6 @@ export const sendApplicationRejectionEmail = async (
     subject: 'MPMA Application Status Update',
     html: buildRejectionHtml(data),
   };
-  const info = await getTransporter().sendMail(mailOptions);
+  const info = await sendMailWithRetry(mailOptions);
   console.log(`Application rejection email sent to ${toEmail} (messageId: ${info.messageId})`);
 };

@@ -22,7 +22,6 @@ Student.init({
     email: {
         type: db_1.DataTypes.STRING,
         allowNull: false,
-        unique: true,
     },
     phone: {
         type: db_1.DataTypes.STRING,
@@ -65,7 +64,7 @@ Student.init({
         defaultValue: db_1.DataTypes.NOW,
     },
     status: {
-        type: db_1.DataTypes.ENUM('Pending', 'Enrolled', 'Registered', 'Graduated', 'Dropout', 'Applied', 'Qualified'),
+        type: db_1.DataTypes.ENUM('Pending', 'Applied', 'Qualified', 'Enrolled', 'Registered', 'Graduated', 'Dropout'),
         defaultValue: 'Pending',
     },
     application_status: {
@@ -73,24 +72,42 @@ Student.init({
         allowNull: true,
         defaultValue: null,
     },
-    payment_status_type: {
-        type: db_1.DataTypes.ENUM('NOT_REQUESTED', 'PENDING', 'PAID', 'FAILED'),
+    enrollment_type: {
+        type: db_1.DataTypes.ENUM('STUDENT_SELF', 'ADMIN_DIRECT'),
         allowNull: true,
         defaultValue: null,
     },
-    documents_path: {
-        type: db_1.DataTypes.STRING,
+    payment_status_type: {
+        type: db_1.DataTypes.ENUM('NOT_REQUESTED', 'PENDING', 'PAID', 'FAILED', 'CANCELLED', 'REFUNDED'),
         allowNull: true,
-        comment: 'Path to stored documents or JSON array of document paths',
+        defaultValue: null,
     },
     approved_at: {
         type: db_1.DataTypes.DATE,
         allowNull: true,
+        defaultValue: null,
     },
     admin_notes: {
         type: db_1.DataTypes.TEXT,
         allowNull: true,
+        defaultValue: null,
     },
+    registration_number: {
+        type: db_1.DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
+    },
+    application_number: { type: db_1.DataTypes.STRING, allowNull: true, unique: true },
+    nationality: { type: db_1.DataTypes.STRING, allowNull: true },
+    country_of_origin: { type: db_1.DataTypes.STRING, allowNull: true },
+    course_id: { type: db_1.DataTypes.UUID, allowNull: true },
+    batch_id: { type: db_1.DataTypes.UUID, allowNull: true },
+    company_name: { type: db_1.DataTypes.STRING, allowNull: true },
+    outside_position: { type: db_1.DataTypes.STRING, allowNull: true },
+    service_number: { type: db_1.DataTypes.STRING, allowNull: true },
+    epf_number: { type: db_1.DataTypes.STRING, allowNull: true },
+    department: { type: db_1.DataTypes.STRING, allowNull: true },
+    slpa_position: { type: db_1.DataTypes.STRING, allowNull: true },
 }, {
     sequelize: db_1.sequelize,
     tableName: 'students',
