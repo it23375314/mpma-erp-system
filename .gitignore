@@ -1,2 +1,4 @@
 node_modules/
 backend/.env
+backend/server.err.log
+backend/server.out.log
