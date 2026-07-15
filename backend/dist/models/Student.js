@@ -65,8 +65,31 @@ Student.init({
         defaultValue: db_1.DataTypes.NOW,
     },
     status: {
-        type: db_1.DataTypes.ENUM('Pending', 'Enrolled', 'Registered', 'Graduated', 'Dropout'),
+        type: db_1.DataTypes.ENUM('Pending', 'Enrolled', 'Registered', 'Graduated', 'Dropout', 'Applied', 'Qualified'),
         defaultValue: 'Pending',
+    },
+    application_status: {
+        type: db_1.DataTypes.ENUM('PENDING_REVIEW', 'APPROVED', 'REJECTED', 'CORRECTION_REQUESTED'),
+        allowNull: true,
+        defaultValue: null,
+    },
+    payment_status_type: {
+        type: db_1.DataTypes.ENUM('NOT_REQUESTED', 'PENDING', 'PAID', 'FAILED'),
+        allowNull: true,
+        defaultValue: null,
+    },
+    documents_path: {
+        type: db_1.DataTypes.STRING,
+        allowNull: true,
+        comment: 'Path to stored documents or JSON array of document paths',
+    },
+    approved_at: {
+        type: db_1.DataTypes.DATE,
+        allowNull: true,
+    },
+    admin_notes: {
+        type: db_1.DataTypes.TEXT,
+        allowNull: true,
     },
 }, {
     sequelize: db_1.sequelize,

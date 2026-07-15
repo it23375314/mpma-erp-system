@@ -221,16 +221,16 @@ const StudentEnrollment = () => {
         passportNumber: formData.passportNumber,
       };
 
-      const response = await fetchApi('/students/enroll', {
+      const response = await fetchApi('/students/register', {
         method: 'POST',
         body: JSON.stringify(submitData)
-      }) as { message: string; emailSent: boolean };
+      }) as { message?: string; success?: boolean; error?: string };
 
-      if (response.emailSent) {
-        toast.success("Student enrolled successfully! Payment details sent to student email.");
-      } else {
-        toast.success("Student enrolled successfully! Payment email could not be sent.");
+      if (response.error) {
+        throw new Error(response.error);
       }
+      
+      toast.success("Application submitted successfully! It is now pending admin verification.");
       navigate("/student-management/enrollment");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Enrollment failed.";

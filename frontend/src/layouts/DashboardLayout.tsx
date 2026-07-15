@@ -19,7 +19,9 @@ import {
   Layers,
   GraduationCap,
   CreditCard,
-  ClipboardCheck
+  ClipboardCheck,
+  ShieldCheck,
+  Award
 } from "lucide-react";
 import logoImg from "../assets/logo.png";
 import ChangePasswordModal from "../components/ChangePasswordModal";
@@ -237,9 +239,11 @@ export default function DashboardLayout({ children }: any) {
           {isStudentManagementOpen && (
             <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 mt-1 transition-all">
               {[
-                { path: "/student-management/students", label: "Student List", icon: Users },
                 { path: "/student-management/enrollment", label: "Enrollment", icon: ClipboardCheck },
+                { path: "/student-management/verification", label: "Verification", icon: ShieldCheck },
                 { path: "/student-management/payment", label: "Payment", icon: CreditCard },
+                { path: "/student-management/registration", label: "Registration", icon: Award },
+                { path: "/student-management/students", label: "All Students", icon: Users },
               ].map((item) => {
                 const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
                 const Icon = item.icon;
