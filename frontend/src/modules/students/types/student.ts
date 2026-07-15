@@ -33,6 +33,18 @@ export interface StudentRecord {
   studentCategory?: string | null;
   nic?: string | null;
   passport?: string | null;
+  application_number?: string | null;
+  nationality?: string | null;
+  country_of_origin?: string | null;
+  course_id?: string | null;
+  batch_id?: string | null;
+  company_name?: string | null;
+  outside_position?: string | null;
+  service_number?: string | null;
+  epf_number?: string | null;
+  department?: string | null;
+  slpa_position?: string | null;
+  documents?: Array<{ id: number; document_type: string; file_name: string; mime_type: string; uploaded_by_admin: boolean }>;
   enrollmentDate: string;
   status: StudentStatus;
   createdAt: string;

@@ -23,6 +23,9 @@ import StudentPayment from './models/StudentPayment';
 import ApplicationDocument from './models/ApplicationDocument';
 import VerificationChecklist from './models/VerificationChecklist';
 import { setupAssociations } from './models/associations';
+import publicCourseRoutes from './routes/publicCourseRoutes';
+import publicApplicationRoutes from './routes/publicApplicationRoutes';
+import './models/SlpaEmployee';
 
 // Set up model relationships
 setupAssociations();
@@ -53,12 +56,15 @@ app.use('/api/batches', batchRoutes);
 app.use('/api/lecturers', lecturerRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/student-payments', studentPaymentRoutes);
-
+app.use('/api/public/courses', publicCourseRoutes);
+app.use('/api/public', publicApplicationRoutes);
 // Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || 'Internal Server Error'
+  const uploadError = err?.name === 'MulterError' || String(err?.message || '').includes('PDF, JPG');
+  if (!uploadError) console.error(err.stack);
+  res.status(uploadError ? 400 : (err.status || 500)).json({
+    success: false,
+    message: uploadError ? (err.code === 'LIMIT_FILE_SIZE' ? 'Each document must be 5 MB or smaller.' : err.message) : 'Internal Server Error'
   });
 });
 
@@ -69,11 +75,9 @@ const init = async () => {
   try {
     await connectDB();
     
-    // Sync models (alter: true safely adds new columns)
-    await Student.sync({ alter: true });
-    await StudentPayment.sync({ alter: true });
-    await ApplicationDocument.sync({ alter: true });
-    await VerificationChecklist.sync({ alter: true });
+    // connectDB() already synchronizes all registered models. Running
+    // per-model alter syncs here causes Sequelize/MySQL to create duplicate
+    // unique indexes on every startup until MySQL reaches its index limit.
     console.log("Database models synchronized.");
 
     app.listen(PORT, () => {

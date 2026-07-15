@@ -1,13 +1,12 @@
-const BASE_URL = 'http://localhost:5001/api';
+export const BASE_URL = 'http://localhost:5001/api';
 
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${BASE_URL}${endpoint}`;
   
   const token = localStorage.getItem('token');
   
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const headers: Record<string, string> = {};
+  if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
