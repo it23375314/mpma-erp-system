@@ -4,16 +4,30 @@ import PDFDocument from 'pdfkit';
 import Student, { StudentAttributes, ApplicationStatus } from '../models/Student';
 import StudentPayment from '../models/StudentPayment';
 import ApplicationDocument from '../models/ApplicationDocument';
+import { ApplicationValidationError, createStudentApplication } from '../services/studentApplicationService';
+import { sequelize } from '../config/db';
 import { generatePaymentReference, formatAmount } from '../utils/paymentHelpers';
 import {
   sendEnrollmentPaymentEmail,
-  sendQualificationPaymentEmail,
   sendCorrectionRequestEmail,
   sendApplicationRejectionEmail,
 } from '../services/emailService';
 
 const DEFAULT_REGISTRATION_FEE = 2500;
 const DEFAULT_COURSE_FEE = 25000;
+
+const getEmailDeliveryFailureMessage = (error: any): string => {
+  if (error?.responseCode === 550 && /sending limit exceeded/i.test(error?.message || '')) {
+    return 'Gmail rejected the email because the sender account reached its daily sending limit. Retry after the quota resets or configure another SMTP sender.';
+  }
+  if (['EAUTH', 'EENVELOPE'].includes(error?.code)) {
+    return 'The email provider rejected the message. Check the SMTP account and recipient address, then retry.';
+  }
+  if (['ETIMEDOUT', 'ECONNECTION'].includes(error?.code)) {
+    return 'The email provider could not be reached. Check the network connection and retry.';
+  }
+  return 'Application approved and payment record created, but the email provider could not deliver the message.';
+};
 
 type StudentWithLatestPayment = StudentAttributes & {
   createdAt?: Date;
@@ -178,70 +192,14 @@ const getFilteredStudents = async (query: Request['query']) => {
 // ============================================================
 export const submitApplication = async (req: Request, res: Response) => {
   try {
-    const {
-      firstName,
-      lastName,
-      email,
-      phone,
-      dob,
-      gender,
-      address,
-      course,
-      batch,
-      studentCategory,
-      nic,
-      idNumber,
-      passport,
-      passportNumber,
-    } = req.body;
-
-    // Check if student with this email already exists
-    const existingStudent = await Student.findOne({ where: { email } });
-    if (existingStudent) {
-      return res.status(400).json({
-        success: false,
-        message: 'A student with this email already exists.',
-      });
-    }
-
-    // Create student with APPLIED status and PENDING_REVIEW application_status
-    const student = await Student.create({
-      firstName,
-      lastName,
-      email,
-      phone,
-      dob,
-      gender,
-      address,
-      course,
-      batch,
-      studentCategory: studentCategory || null,
-      nic: nic || idNumber || null,
-      passport: passport || passportNumber || null,
-      status: 'Applied',
-      application_status: 'PENDING_REVIEW',
-      payment_status_type: 'NOT_REQUESTED',
-      enrollmentDate: new Date().toISOString().split('T')[0],
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Student application submitted successfully. Awaiting admin review.',
-      student: {
-        id: student.id,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        email: student.email,
-        status: student.status,
-        application_status: student.application_status,
-        payment_status_type: student.payment_status_type,
-      },
-    });
-  } catch (error: any) {
+    const result = await createStudentApplication(req.body, (req.files as Express.Multer.File[]) || [], 'ADMIN_DIRECT');
+    res.status(201).json({ success: true, message: 'Application submitted successfully', ...result, status: 'PENDING_REVIEW' });
+  } catch (error: unknown) {
+    if (error instanceof ApplicationValidationError) return res.status(400).json({ success: false, message: error.message, fields: error.fields });
     console.error('Submit application error:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Server Error',
+      message: 'Unable to submit the application.',
     });
   }
 };
@@ -294,6 +252,7 @@ export const getApplicationById = async (req: Request, res: Response) => {
           model: ApplicationDocument,
           as: 'documents',
           separate: true,
+          attributes: { exclude: ['file_data'] },
         },
         {
           model: StudentPayment,
@@ -321,6 +280,34 @@ export const getApplicationById = async (req: Request, res: Response) => {
       success: false,
       message: error.message || 'Server Error',
     });
+  }
+};
+
+// Stream one stored application document after confirming it belongs to the
+// requested student. The admin frontend can request inline viewing or download.
+export const getApplicationDocument = async (req: Request, res: Response) => {
+  try {
+    const document = await ApplicationDocument.findOne({
+      where: {
+        id: Number(req.params.documentId),
+        student_id: req.params.id as string,
+      },
+    });
+
+    if (!document) {
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+
+    const safeName = document.file_name.replace(/[\r\n"]/g, '_');
+    const disposition = req.query.download === '1' ? 'attachment' : 'inline';
+    res.setHeader('Content-Type', document.mime_type);
+    res.setHeader('Content-Length', document.file_data.length);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${safeName}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return res.send(document.file_data);
+  } catch (error: any) {
+    console.error('Get application document error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to retrieve document' });
   }
 };
 
@@ -362,28 +349,62 @@ export const approveAndSendPaymentRequest = async (req: Request, res: Response) 
         ? Number(courseFeeInput)
         : DEFAULT_COURSE_FEE;
     const full_amount_payable = formatAmount(registration_fee + course_fee);
-    const payment_reference = generatePaymentReference(student.id);
+    const transaction = await sequelize.transaction();
+    let payment: StudentPayment;
+    try {
+      // Reuse the latest pending record if a previous approval attempt failed.
+      // This makes approval idempotent and avoids duplicate payment requests.
+      const pendingPayments = await StudentPayment.findAll({
+        where: { student_id: student.id, payment_status: 'PENDING' },
+        order: [['created_at', 'DESC']],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      const existingPayment = pendingPayments[0];
+      if (existingPayment) {
+        await existingPayment.update({
+          registration_fee,
+          course_fee,
+          full_amount_payable,
+          payment_method: 'GOVPAY',
+          payment_completed: false,
+        }, { transaction });
+        payment = existingPayment;
 
-    // Create StudentPayment record with PENDING status
-    const payment = await StudentPayment.create({
-      student_id: student.id,
-      course_batch_id: null,
-      registration_fee,
-      course_fee,
-      full_amount_payable,
-      payment_reference,
-      payment_status: 'PENDING',
-      payment_completed: false,
-      payment_method: 'GOVPAY',
-    });
+        // Preserve failed-attempt records for audit, but make only one payable.
+        for (const duplicate of pendingPayments.slice(1)) {
+          await duplicate.update({
+            payment_status: 'CANCELLED',
+            remarks: 'Cancelled duplicate created by an earlier failed approval attempt',
+          }, { transaction });
+        }
+      } else {
+        payment = await StudentPayment.create({
+          student_id: student.id,
+          course_batch_id: null,
+          registration_fee,
+          course_fee,
+          full_amount_payable,
+          payment_reference: generatePaymentReference(student.id),
+          payment_status: 'PENDING',
+          payment_completed: false,
+          payment_method: 'GOVPAY',
+        }, { transaction });
+      }
 
-    // Update student status
-    await student.update({
-      application_status: 'APPROVED',
-      status: 'Qualified',
-      payment_status_type: 'PENDING',
-      approved_at: new Date(),
-    });
+      await student.update({
+        application_status: 'APPROVED',
+        status: 'Qualified',
+        payment_status_type: 'PENDING',
+        approved_at: new Date(),
+      }, { transaction });
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+
+    const payment_reference = payment.payment_reference;
 
     // Send qualification & payment email
     const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
@@ -391,9 +412,11 @@ export const approveAndSendPaymentRequest = async (req: Request, res: Response) 
     const studentName = `${student.firstName} ${student.lastName}`.trim();
 
     let emailSent = false;
+    let emailFailureMessage = '';
     try {
-      await sendQualificationPaymentEmail(student.email, {
+      await sendEnrollmentPaymentEmail(student.email, {
         studentName,
+        studentCategory: student.studentCategory || 'Student',
         courseName: student.course,
         batchName: student.batch,
         paymentReference: payment_reference,
@@ -405,13 +428,14 @@ export const approveAndSendPaymentRequest = async (req: Request, res: Response) 
       emailSent = true;
     } catch (emailError: any) {
       console.error('Failed to send qualification payment email:', emailError?.message || emailError);
+      emailFailureMessage = getEmailDeliveryFailureMessage(emailError);
     }
 
     res.json({
       success: true,
       message: emailSent
         ? 'Application approved, payment record created, and qualification email sent successfully'
-        : 'Application approved and payment record created, but email could not be sent',
+        : emailFailureMessage,
       student: student.toJSON(),
       payment: payment.toJSON(),
       emailSent,
@@ -421,6 +445,47 @@ export const approveAndSendPaymentRequest = async (req: Request, res: Response) 
     res.status(500).json({
       success: false,
       message: error.message || 'Server Error',
+    });
+  }
+};
+
+// Retry only the notification for an already-approved application. This never
+// creates a second payment and is safe to use after a temporary SMTP failure.
+export const resendQualificationPaymentNotification = async (req: Request, res: Response) => {
+  try {
+    const student = await Student.findByPk(req.params.id as string);
+    if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
+    if (student.application_status !== 'APPROVED') {
+      return res.status(400).json({ success: false, message: 'Only approved applications can resend a payment email' });
+    }
+
+    const payment = await StudentPayment.findOne({
+      where: { student_id: student.id, payment_status: 'PENDING' },
+      order: [['created_at', 'DESC']],
+    });
+    if (!payment) return res.status(404).json({ success: false, message: 'Pending payment request not found' });
+
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    await sendEnrollmentPaymentEmail(student.email, {
+      studentName: `${student.firstName} ${student.lastName}`.trim(),
+      studentCategory: student.studentCategory || 'Student',
+      courseName: student.course,
+      batchName: student.batch,
+      paymentReference: payment.payment_reference,
+      registrationFee: Number(payment.registration_fee),
+      courseFee: Number(payment.course_fee),
+      totalAmount: Number(payment.full_amount_payable),
+      paymentPageUrl: `${frontendUrl}/student-management/payment?ref=${encodeURIComponent(payment.payment_reference)}`,
+    });
+
+    return res.json({ success: true, emailSent: true, message: 'Payment email sent successfully' });
+  } catch (error: any) {
+    console.error('Resend qualification email error:', error?.message || error);
+    const quotaExceeded = error?.responseCode === 550 && /sending limit exceeded/i.test(error?.message || '');
+    return res.status(quotaExceeded ? 429 : 502).json({
+      success: false,
+      emailSent: false,
+      message: getEmailDeliveryFailureMessage(error),
     });
   }
 };

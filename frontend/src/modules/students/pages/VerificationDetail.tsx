@@ -20,8 +20,10 @@ import {
   Loader2,
   Send,
   Ban,
+  Eye,
+  Download,
 } from "lucide-react";
-import { fetchApi } from "../../../utils/api";
+import { BASE_URL, fetchApi } from "../../../utils/api";
 
 interface ChecklistState {
   identity_verified: boolean;
@@ -58,6 +60,39 @@ export default function VerificationDetail() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [regFee, setRegFee] = useState(2500);
   const [courseFee, setCourseFee] = useState(25000);
+  const [documentLoading, setDocumentLoading] = useState<number | null>(null);
+  const [approvalCompleted, setApprovalCompleted] = useState(false);
+
+  const openDocument = async (doc: any, download = false) => {
+    setDocumentLoading(doc.id);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${BASE_URL}/students/application/${student.id}/documents/${doc.id}${download ? "?download=1" : ""}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Unable to retrieve document");
+      }
+      const blobUrl = URL.createObjectURL(await response.blob());
+      if (download) {
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = doc.file_name || "document";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (error: any) {
+      toast.error(error.message || "Unable to retrieve document");
+    } finally {
+      setDocumentLoading(null);
+    }
+  };
 
   useEffect(() => {
     loadStudent();
@@ -97,14 +132,35 @@ export default function VerificationDetail() {
         body: JSON.stringify({ registration_fee: regFee, course_fee: courseFee }),
       });
       if (res.success) {
-        toast.success("Application approved! Payment email sent to student.");
-        setShowApproveModal(false);
-        navigate("/student-management/verification");
+        if (res.emailSent) {
+          toast.success("Application approved and payment email sent to student.");
+          setShowApproveModal(false);
+          navigate("/student-management/verification");
+        } else {
+          toast.warning(res.message || "Application approved, but the payment email could not be sent. Check SMTP settings and retry the email.");
+          setApprovalCompleted(true);
+        }
       } else {
         toast.error(res.message || "Failed to approve");
       }
     } catch (err: any) {
       toast.error(err.message || "Server error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResendPaymentEmail = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetchApi(`/students/${id}/resend-payment-email`, { method: "POST" });
+      if (res.success && res.emailSent) {
+        toast.success("Payment email sent to student.");
+        setShowApproveModal(false);
+        navigate("/student-management/verification");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Email could not be sent");
     } finally {
       setSubmitting(false);
     }
@@ -214,8 +270,15 @@ export default function VerificationDetail() {
                 <InfoRow icon={<FileText className="w-4 h-4" />} label="NIC" value={student.nic || "—"} />
                 <InfoRow icon={<FileText className="w-4 h-4" />} label="Passport" value={student.passport || "—"} />
                 <InfoRow icon={<User className="w-4 h-4" />} label="Category" value={student.studentCategory || "—"} />
+                <InfoRow icon={<FileText className="w-4 h-4" />} label="Application No." value={student.application_number || "—"} />
+                <InfoRow icon={<User className="w-4 h-4" />} label="Nationality / Country" value={[student.nationality, student.country_of_origin].filter(Boolean).join(' / ') || "—"} />
                 <InfoRow icon={<BookOpen className="w-4 h-4" />} label="Course" value={student.course} />
                 <InfoRow icon={<BookOpen className="w-4 h-4" />} label="Batch" value={student.batch} />
+                {student.studentCategory === 'SLPA Employee' && <>
+                  <InfoRow icon={<FileText className="w-4 h-4" />} label="Service / EPF" value={[student.service_number, student.epf_number].filter(Boolean).join(' / ') || "—"} />
+                  <InfoRow icon={<User className="w-4 h-4" />} label="Department / Position" value={[student.department, student.slpa_position].filter(Boolean).join(' / ') || "—"} />
+                </>}
+                {student.studentCategory !== 'SLPA Employee' && <InfoRow icon={<User className="w-4 h-4" />} label="Employment / Role" value={[student.company_name, student.outside_position].filter(Boolean).join(' / ') || "—"} />}
                 <InfoRow icon={<MapPin className="w-4 h-4" />} label="Address" value={student.address} className="sm:col-span-2" />
               </div>
             </div>
@@ -244,6 +307,28 @@ export default function VerificationDetail() {
                             <p className="text-sm font-semibold text-slate-700">{doc.file_name}</p>
                             <p className="text-xs text-slate-400">{doc.document_type} · {doc.mime_type}</p>
                           </div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-3">
+                          <button
+                            type="button"
+                            onClick={() => openDocument(doc)}
+                            disabled={documentLoading === doc.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition-colors disabled:opacity-50"
+                            title="View document"
+                          >
+                            {documentLoading === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openDocument(doc, true)}
+                            disabled={documentLoading === doc.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors disabled:opacity-50"
+                            title="Download document"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -356,10 +441,10 @@ export default function VerificationDetail() {
           </div>
           <div className="flex gap-3 justify-end">
             <button onClick={() => setShowApproveModal(false)} className="px-4 py-2 rounded-xl text-sm text-slate-600 border border-slate-200 hover:bg-slate-50">Cancel</button>
-            <button onClick={handleApprove} disabled={submitting}
+            <button onClick={approvalCompleted ? handleResendPaymentEmail : handleApprove} disabled={submitting}
               className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all disabled:opacity-50">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Approve & Email Student
+              {approvalCompleted ? "Resend Payment Email" : "Approve & Email Student"}
             </button>
           </div>
         </Modal>

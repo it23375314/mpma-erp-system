@@ -10,7 +10,6 @@ import {
   Search,
   User,
   Mail,
-  BookOpen,
   Filter,
   ClipboardList,
   Calendar,

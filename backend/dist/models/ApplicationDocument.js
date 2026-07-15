@@ -19,33 +19,30 @@ ApplicationDocument.init({
     document_type: {
         type: db_1.DataTypes.STRING,
         allowNull: false,
-        comment: 'e.g., "NIC", "Passport", "Birth Certificate", "O/Ls", "A/Ls"',
+        comment: 'e.g. NIC, Passport, Certificate, Photo',
     },
     file_name: {
         type: db_1.DataTypes.STRING,
         allowNull: false,
     },
-    file_path: {
-        type: db_1.DataTypes.STRING,
-        allowNull: false,
-        comment: 'Relative or absolute path to uploaded file',
-    },
-    file_size: {
-        type: db_1.DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'File size in bytes',
-    },
     mime_type: {
         type: db_1.DataTypes.STRING,
         allowNull: false,
-        comment: 'e.g., "application/pdf", "image/jpeg"',
     },
-    uploaded_at: {
-        type: db_1.DataTypes.DATE,
-        defaultValue: db_1.DataTypes.NOW,
+    file_data: {
+        type: db_1.DataTypes.BLOB('long'),
+        allowNull: false,
+    },
+    uploaded_by_admin: {
+        type: db_1.DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
     },
 }, {
     sequelize: db_1.sequelize,
     tableName: 'application_documents',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
 });
 exports.default = ApplicationDocument;

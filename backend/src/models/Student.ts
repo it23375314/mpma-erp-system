@@ -37,6 +37,17 @@ export interface StudentAttributes {
   approved_at?: Date | null;
   admin_notes?: string | null;
   registration_number?: string | null;
+  application_number?: string | null;
+  nationality?: string | null;
+  country_of_origin?: string | null;
+  course_id?: string | null;
+  batch_id?: string | null;
+  company_name?: string | null;
+  outside_position?: string | null;
+  service_number?: string | null;
+  epf_number?: string | null;
+  department?: string | null;
+  slpa_position?: string | null;
 }
 
 interface StudentCreationAttributes extends Optional<
@@ -53,6 +64,8 @@ interface StudentCreationAttributes extends Optional<
   | 'approved_at'
   | 'admin_notes'
   | 'registration_number'
+  | 'application_number' | 'nationality' | 'country_of_origin' | 'course_id' | 'batch_id'
+  | 'company_name' | 'outside_position' | 'service_number' | 'epf_number' | 'department' | 'slpa_position'
 > { }
 
 export class Student extends Model<StudentAttributes, StudentCreationAttributes> implements StudentAttributes {
@@ -77,6 +90,17 @@ export class Student extends Model<StudentAttributes, StudentCreationAttributes>
   public approved_at!: Date | null;
   public admin_notes!: string | null;
   public registration_number!: string | null;
+  public application_number!: string | null;
+  public nationality!: string | null;
+  public country_of_origin!: string | null;
+  public course_id!: string | null;
+  public batch_id!: string | null;
+  public company_name!: string | null;
+  public outside_position!: string | null;
+  public service_number!: string | null;
+  public epf_number!: string | null;
+  public department!: string | null;
+  public slpa_position!: string | null;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -100,7 +124,6 @@ Student.init(
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
     },
     phone: {
       type: DataTypes.STRING,
@@ -176,6 +199,17 @@ Student.init(
       allowNull: true,
       defaultValue: null,
     },
+    application_number: { type: DataTypes.STRING, allowNull: true, unique: true },
+    nationality: { type: DataTypes.STRING, allowNull: true },
+    country_of_origin: { type: DataTypes.STRING, allowNull: true },
+    course_id: { type: DataTypes.UUID, allowNull: true },
+    batch_id: { type: DataTypes.UUID, allowNull: true },
+    company_name: { type: DataTypes.STRING, allowNull: true },
+    outside_position: { type: DataTypes.STRING, allowNull: true },
+    service_number: { type: DataTypes.STRING, allowNull: true },
+    epf_number: { type: DataTypes.STRING, allowNull: true },
+    department: { type: DataTypes.STRING, allowNull: true },
+    slpa_position: { type: DataTypes.STRING, allowNull: true },
   },
   {
     sequelize,
